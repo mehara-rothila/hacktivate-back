@@ -9,7 +9,7 @@ spring:
   
   data:
     mongodb:
-      uri: mongodb+srv://ranawakaramr22:UMayDaXzqTgobVbc@hacktivate.rq7koc2.mongodb.net/edulink?retryWrites=true&w=majority
+      uri: ${MONGODB_URI:mongodb://localhost:27017/edulink}
       auto-index-creation: true
   
   servlet:
@@ -20,13 +20,13 @@ spring:
   
   security:
     jwt:
-      secret: EduLinkProSecretKeyForJWTTokenGeneration2025HackVite
-      expiration: 86400000 # 24 hours
-      refresh-expiration: 604800000 # 7 days
+      secret: ${JWT_SECRET:EduLinkProSecretKeyForJWTTokenGeneration2025HackVite}
+      expiration: ${JWT_EXPIRATION:86400000} # 24 hours
+      refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000} # 7 days
 
 # CORS Configuration
 cors:
-  allowed-origins: http://localhost:3000,http://localhost:3001
+  allowed-origins: ${CORS_ORIGINS:http://localhost:3000,http://localhost:3001}
   allowed-methods: GET,POST,PUT,DELETE,OPTIONS
   allowed-headers: "*"
   allow-credentials: true
@@ -34,7 +34,7 @@ cors:
 # Logging
 logging:
   level:
-    com.edulink: DEBUG
+    com.edulink: ${LOG_LEVEL:DEBUG}
     org.springframework.data.mongodb: DEBUG
     org.springframework.security: DEBUG
   pattern:
