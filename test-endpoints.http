@@ -1,0 +1,45 @@
+### Test 1: Basic Hello World
+GET http://localhost:8765/api/test/hello
+Content-Type: application/json
+
+###
+
+### Test 2: Check Database Connection
+GET http://localhost:8765/api/test/db-status
+Content-Type: application/json
+
+###
+
+### Test 3: Create a Test Student
+POST http://localhost:8765/api/test/create-user
+Content-Type: application/json
+
+{
+  "email": "student@example.com",
+  "firstName": "John",
+  "lastName": "Doe",
+  "role": "student",
+  "department": "Computer Science"
+}
+
+###
+
+### Test 4: Create a Test Lecturer
+POST http://localhost:8765/api/test/create-user
+Content-Type: application/json
+
+{
+  "email": "lecturer@example.com",
+  "firstName": "Dr. Jane",
+  "lastName": "Smith",
+  "role": "lecturer", 
+  "department": "Computer Science"
+}
+
+###
+
+### Test 5: Get All Users
+GET http://localhost:8765/api/test/users
+Content-Type: application/json
+
+###

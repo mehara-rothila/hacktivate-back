@@ -1,0 +1,51 @@
+server:
+  port: 8765
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: edulink-pro
+  
+  data:
+    mongodb:
+      uri: mongodb+srv://ranawakaramr22:UMayDaXzqTgobVbc@hacktivate.rq7koc2.mongodb.net/edulink?retryWrites=true&w=majority
+      auto-index-creation: true
+  
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 100MB
+      max-request-size: 100MB
+  
+  security:
+    jwt:
+      secret: EduLinkProSecretKeyForJWTTokenGeneration2025HackVite
+      expiration: 86400000 # 24 hours
+      refresh-expiration: 604800000 # 7 days
+
+# CORS Configuration
+cors:
+  allowed-origins: http://localhost:3000,http://localhost:3001
+  allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+  allowed-headers: "*"
+  allow-credentials: true
+
+# Logging
+logging:
+  level:
+    com.edulink: DEBUG
+    org.springframework.data.mongodb: DEBUG
+    org.springframework.security: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# Management endpoints for health check
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
