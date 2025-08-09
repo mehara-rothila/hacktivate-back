@@ -1,6 +1,7 @@
 package com.edulink.backend.repository;
 
 import com.edulink.backend.model.entity.User;
+import com.edulink.backend.model.entity.User.UserRole;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -34,4 +35,7 @@ public interface UserRepository extends MongoRepository<User, String> {
     // Find lecturers by department
     @Query("{'role': 'LECTURER', 'profile.department': ?0}")
     List<User> findLecturersByDepartment(String department);
+    
+    // Find users by role and department
+    List<User> findByRoleAndProfile_Department(UserRole role, String department);
 }
