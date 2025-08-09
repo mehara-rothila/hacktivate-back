@@ -21,10 +21,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/queries")
+@RequestMapping("/api/queries")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001"})
 public class QueryController {
 
     private final QueryService queryService;
@@ -340,14 +339,15 @@ public class QueryController {
 
     // Helper methods
     private String getUserIdFromAuthentication(Authentication authentication) {
-        // Assuming you have a way to extract user ID from authentication
-        // This might need to be adjusted based on your JWT implementation
-        return (String) authentication.getCredentials();
+        // Extract user ID from JWT token principal - this should be the user email or ID
+        return authentication.getName();
     }
 
     private String getUserRoleFromAuthentication(Authentication authentication) {
         // Extract role from authentication authorities
-        return authentication.getAuthorities().iterator().next().getAuthority();
+        String authority = authentication.getAuthorities().iterator().next().getAuthority();
+        // Remove ROLE_ prefix if present
+        return authority.startsWith("ROLE_") ? authority.substring(5) : authority;
     }
 
     private QueryStatus parseQueryStatus(String status) {
