@@ -10,6 +10,7 @@ import com.edulink.backend.dto.response.QueryStatsResponse;
 import com.edulink.backend.model.entity.Query.*;
 import com.edulink.backend.service.QueryService;
 import com.edulink.backend.service.QueryService.QueryFilters;
+import com.edulink.backend.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +28,7 @@ import java.util.List;
 public class QueryController {
 
     private final QueryService queryService;
+    private final UserService userService;
 
     /**
      * Create a new query (students only)
@@ -339,8 +341,16 @@ public class QueryController {
 
     // Helper methods
     private String getUserIdFromAuthentication(Authentication authentication) {
-        // Extract user ID from JWT token principal - this should be the user email or ID
-        return authentication.getName();
+        // authentication.getName() returns email, but we need userId
+        // We need to look up the user by email to get the ID
+        try {
+            String userEmail = authentication.getName();
+            return userService.findByEmail(userEmail)
+                    .map(user -> user.getId())
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to extract user ID from authentication", e);
+        }
     }
 
     private String getUserRoleFromAuthentication(Authentication authentication) {

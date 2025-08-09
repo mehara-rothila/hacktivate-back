@@ -1,14 +1,14 @@
-// File: src/main/java/com/edulink/backend/dto/response/QueryResponse.java
+// File Path: src/main/java/com/edulink/backend/dto/response/QueryResponse.java
 package com.edulink.backend.dto.response;
 
 import com.edulink.backend.model.entity.Query;
 import com.edulink.backend.model.entity.User;
-import lombok.Data;
-import lombok.Builder;
-import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-import java.time.format.DateTimeFormatter;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -25,57 +25,73 @@ public class QueryResponse {
     private String priority;
     private String status;
     private String course;
-    private String submittedAt;
-    private String lastUpdated;
-    private int responseCount;
-    private boolean readByLecturer;
-    private boolean readByStudent;
-    
-    // Student info (for lecturer view)
-    private StudentInfo student;
-    
-    // Lecturer info (for student view)
-    private LecturerInfo lecturer;
-    
-    // Messages and status history (for detailed view)
+    private LocalDateTime submittedAt;
+    private LocalDateTime lastUpdated;
     private List<QueryMessageResponse> messages;
     private List<StatusHistoryResponse> statusHistory;
-    
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    private boolean readByLecturer;
+    private boolean readByStudent;
+    private int responseCount;
+    private StudentInfo student;
+    private LecturerInfo lecturer;
+    private LocalDateTime autoCloseAt;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
+    // Factory methods
     public static QueryResponse fromQuery(Query query, User student, User lecturer) {
         return QueryResponse.builder()
                 .id(query.getId())
                 .title(query.getTitle())
                 .description(query.getDescription())
-                .category(query.getCategory().getDisplayName())
-                .priority(query.getPriority().getValue())
-                .status(query.getStatus().getValue())
+                .category(query.getCategory() != null ? query.getCategory().name() : null)
+                .priority(query.getPriority() != null ? query.getPriority().name() : null)
+                .status(query.getStatus() != null ? query.getStatus().name() : null)
                 .course(query.getCourse())
-                .submittedAt(query.getSubmittedAt().format(FORMATTER))
-                .lastUpdated(query.getLastUpdated().format(FORMATTER))
-                .responseCount(query.getResponseCount())
+                .submittedAt(query.getSubmittedAt())
+                .lastUpdated(query.getLastUpdated())
                 .readByLecturer(query.isReadByLecturer())
                 .readByStudent(query.isReadByStudent())
+                .responseCount(query.getResponseCount())
                 .student(student != null ? StudentInfo.fromUser(student) : null)
                 .lecturer(lecturer != null ? LecturerInfo.fromUser(lecturer) : null)
+                .autoCloseAt(query.getAutoCloseAt())
+                .createdAt(query.getCreatedAt())
+                .updatedAt(query.getUpdatedAt())
                 .build();
     }
-    
+
     public static QueryResponse fromQueryDetailed(Query query, User student, User lecturer) {
-        QueryResponse response = fromQuery(query, student, lecturer);
-        
-        response.setMessages(query.getMessages().stream()
-                .map(QueryMessageResponse::fromQueryMessage)
-                .collect(Collectors.toList()));
-                
-        response.setStatusHistory(query.getStatusHistory().stream()
-                .map(StatusHistoryResponse::fromStatusHistory)
-                .collect(Collectors.toList()));
-                
-        return response;
+        return QueryResponse.builder()
+                .id(query.getId())
+                .title(query.getTitle())
+                .description(query.getDescription())
+                .category(query.getCategory() != null ? query.getCategory().name() : null)
+                .priority(query.getPriority() != null ? query.getPriority().name() : null)
+                .status(query.getStatus() != null ? query.getStatus().name() : null)
+                .course(query.getCourse())
+                .submittedAt(query.getSubmittedAt())
+                .lastUpdated(query.getLastUpdated())
+                .messages(query.getMessages() != null ? 
+                    query.getMessages().stream()
+                        .map(QueryMessageResponse::fromQueryMessage)
+                        .collect(Collectors.toList()) : null)
+                .statusHistory(query.getStatusHistory() != null ?
+                    query.getStatusHistory().stream()
+                        .map(StatusHistoryResponse::fromStatusHistoryEntry)
+                        .collect(Collectors.toList()) : null)
+                .readByLecturer(query.isReadByLecturer())
+                .readByStudent(query.isReadByStudent())
+                .responseCount(query.getResponseCount())
+                .student(student != null ? StudentInfo.fromUser(student) : null)
+                .lecturer(lecturer != null ? LecturerInfo.fromUser(lecturer) : null)
+                .autoCloseAt(query.getAutoCloseAt())
+                .createdAt(query.getCreatedAt())
+                .updatedAt(query.getUpdatedAt())
+                .build();
     }
 
+    // Nested classes for user info
     @Data
     @Builder
     @NoArgsConstructor
@@ -84,25 +100,22 @@ public class QueryResponse {
         private String id;
         private String name;
         private String email;
+        private String department;
         private String studentId;
         private String year;
         private String major;
-        private String department;
 
         public static StudentInfo fromUser(User user) {
-            String fullName = "";
-            if (user.getProfile() != null) {
-                fullName = (user.getProfile().getFirstName() + " " + user.getProfile().getLastName()).trim();
-            }
+            if (user == null) return null;
             
             return StudentInfo.builder()
                     .id(user.getId())
-                    .name(fullName.isEmpty() ? user.getEmail() : fullName)
+                    .name(getFullName(user))
                     .email(user.getEmail())
+                    .department(user.getProfile() != null ? user.getProfile().getDepartment() : null)
                     .studentId(user.getProfile() != null ? user.getProfile().getStudentId() : null)
                     .year(user.getProfile() != null ? user.getProfile().getYear() : null)
                     .major(user.getProfile() != null ? user.getProfile().getMajor() : null)
-                    .department(user.getProfile() != null ? user.getProfile().getDepartment() : null)
                     .build();
         }
     }
@@ -115,24 +128,35 @@ public class QueryResponse {
         private String id;
         private String name;
         private String email;
+        private String department;
         private String employeeId;
         private String office;
-        private String department;
+        private String phone;
 
         public static LecturerInfo fromUser(User user) {
-            String fullName = "";
-            if (user.getProfile() != null) {
-                fullName = (user.getProfile().getFirstName() + " " + user.getProfile().getLastName()).trim();
-            }
+            if (user == null) return null;
             
             return LecturerInfo.builder()
                     .id(user.getId())
-                    .name(fullName.isEmpty() ? user.getEmail() : fullName)
+                    .name(getFullName(user))
                     .email(user.getEmail())
+                    .department(user.getProfile() != null ? user.getProfile().getDepartment() : null)
                     .employeeId(user.getProfile() != null ? user.getProfile().getEmployeeId() : null)
                     .office(user.getProfile() != null ? user.getProfile().getOffice() : null)
-                    .department(user.getProfile() != null ? user.getProfile().getDepartment() : null)
+                    .phone(user.getProfile() != null ? user.getProfile().getPhone() : null)
                     .build();
         }
+    }
+
+    // Helper method
+    private static String getFullName(User user) {
+        if (user.getProfile() != null) {
+            String firstName = user.getProfile().getFirstName();
+            String lastName = user.getProfile().getLastName();
+            if (firstName != null && lastName != null) {
+                return (firstName + " " + lastName).trim();
+            }
+        }
+        return user.getEmail();
     }
 }
