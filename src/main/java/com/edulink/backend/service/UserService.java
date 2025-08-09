@@ -2,10 +2,13 @@
 package com.edulink.backend.service;
 
 import com.edulink.backend.dto.request.RegisterRequest;
+import com.edulink.backend.dto.response.UserProfileResponse;
 import com.edulink.backend.model.entity.User;
 import com.edulink.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -25,19 +28,16 @@ public class UserService {
      */
     public User registerUser(RegisterRequest request) {
         log.info("Attempting to register user with email: {}", request.getEmail());
-        
-        // Check if email already exists
+
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email already exists: " + request.getEmail());
         }
 
-        // Validate password
         String passwordError = passwordService.getPasswordValidationError(request.getPassword());
         if (passwordError != null) {
             throw new RuntimeException("Invalid password: " + passwordError);
         }
 
-        // Create new user
         User user = new User();
         user.setEmail(request.getEmail().toLowerCase().trim());
         user.setPassword(passwordService.hashPassword(request.getPassword()));
@@ -46,13 +46,11 @@ public class UserService {
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
 
-        // Create user profile
         User.UserProfile profile = new User.UserProfile();
         profile.setFirstName(request.getFirstName().trim());
         profile.setLastName(request.getLastName().trim());
         profile.setDepartment(request.getDepartment().trim());
 
-        // Set role-specific fields
         if (user.getRole() == User.UserRole.STUDENT) {
             profile.setStudentId(request.getStudentId());
             profile.setYear(request.getYear());
@@ -63,14 +61,12 @@ public class UserService {
             profile.setPhone(request.getPhone());
         }
 
-        // Set optional common fields
         if (request.getAvatar() != null && !request.getAvatar().trim().isEmpty()) {
             profile.setAvatar(request.getAvatar().trim());
         }
 
         user.setProfile(profile);
 
-        // Save user
         User savedUser = userRepository.save(user);
         log.info("Successfully registered user: {} with ID: {}", savedUser.getEmail(), savedUser.getId());
 
@@ -82,8 +78,7 @@ public class UserService {
      */
     public User authenticateUser(String email, String password) {
         log.info("Attempting to authenticate user: {}", email);
-        
-        // Find user by email
+
         Optional<User> userOptional = userRepository.findByEmail(email.toLowerCase().trim());
         if (userOptional.isEmpty()) {
             log.warn("Authentication failed: User not found with email: {}", email);
@@ -92,19 +87,16 @@ public class UserService {
 
         User user = userOptional.get();
 
-        // Check if user is active
         if (!user.isActive()) {
             log.warn("Authentication failed: User account is inactive: {}", email);
             throw new RuntimeException("Account is inactive. Please contact administrator.");
         }
 
-        // Verify password
         if (!passwordService.verifyPassword(password, user.getPassword())) {
             log.warn("Authentication failed: Invalid password for user: {}", email);
             throw new RuntimeException("Invalid email or password");
         }
 
-        // Update last login
         user.setLastLogin(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
@@ -113,38 +105,63 @@ public class UserService {
         return user;
     }
 
+    public User getCurrentUser() {
+        String userEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + userEmail));
+    }
+
     /**
-     * Find user by email
+     * Maps a User entity to a UserProfileResponse DTO.
+     * This is a public static helper method so it can be reused by other services (like CourseService).
+     *
+     * @param user The User entity.
+     * @return The UserProfileResponse DTO.
      */
+    public static UserProfileResponse mapToUserProfileResponse(User user) {
+        if (user == null || user.getProfile() == null) {
+            return null;
+        }
+        // CORRECTED: Use the no-argument constructor and setters
+        UserProfileResponse response = new UserProfileResponse();
+        response.setId(user.getId());
+        response.setEmail(user.getEmail());
+        response.setFirstName(user.getProfile().getFirstName());
+        response.setLastName(user.getProfile().getLastName());
+        response.setRole(user.getRole().name());
+        response.setDepartment(user.getProfile().getDepartment());
+        response.setAvatar(user.getProfile().getAvatar());
+        response.setStudentId(user.getProfile().getStudentId());
+        response.setEmployeeId(user.getProfile().getEmployeeId());
+        response.setYear(user.getProfile().getYear());
+        response.setMajor(user.getProfile().getMajor());
+        response.setOffice(user.getProfile().getOffice());
+        response.setPhone(user.getProfile().getPhone());
+        response.setActive(user.isActive());
+        response.setLastLogin(user.getLastLogin());
+        response.setCreatedAt(user.getCreatedAt());
+        return response;
+    }
+
     public Optional<User> findByEmail(String email) {
         return userRepository.findByEmail(email.toLowerCase().trim());
     }
 
-    /**
-     * Find user by ID
-     */
     public Optional<User> findById(String id) {
         return userRepository.findById(id);
     }
 
-    /**
-     * Get user profile by ID
-     */
     public User getUserProfile(String userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
     }
 
-    /**
-     * Update user profile
-     */
     public User updateUserProfile(String userId, User.UserProfile profileUpdate) {
         log.info("Updating profile for user ID: {}", userId);
-        
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
 
-        // Update profile fields if provided
         User.UserProfile currentProfile = user.getProfile();
         if (currentProfile == null) {
             currentProfile = new User.UserProfile();
@@ -169,7 +186,6 @@ public class UserService {
             currentProfile.setAvatar(profileUpdate.getAvatar().trim());
         }
 
-        // Role-specific updates
         if (user.getRole() == User.UserRole.STUDENT) {
             if (profileUpdate.getYear() != null) {
                 currentProfile.setYear(profileUpdate.getYear());
@@ -188,27 +204,21 @@ public class UserService {
         return updatedUser;
     }
 
-    /**
-     * Change user password
-     */
     public void changePassword(String userId, String currentPassword, String newPassword) {
         log.info("Attempting to change password for user ID: {}", userId);
-        
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
 
-        // Verify current password
         if (!passwordService.verifyPassword(currentPassword, user.getPassword())) {
             throw new RuntimeException("Current password is incorrect");
         }
 
-        // Validate new password
         String passwordError = passwordService.getPasswordValidationError(newPassword);
         if (passwordError != null) {
             throw new RuntimeException("Invalid new password: " + passwordError);
         }
 
-        // Update password
         user.setPassword(passwordService.hashPassword(newPassword));
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
@@ -216,33 +226,21 @@ public class UserService {
         log.info("Successfully changed password for user: {}", user.getEmail());
     }
 
-    /**
-     * Get all students
-     */
     public List<User> getAllStudents() {
         return userRepository.findByRole(User.UserRole.STUDENT);
     }
 
-    /**
-     * Get all lecturers
-     */
     public List<User> getAllLecturers() {
         return userRepository.findByRole(User.UserRole.LECTURER);
     }
 
-    /**
-     * Get users by department
-     */
     public List<User> getUsersByDepartment(String department) {
         return userRepository.findByDepartment(department);
     }
 
-    /**
-     * Deactivate user account
-     */
     public void deactivateUser(String userId) {
         log.info("Deactivating user with ID: {}", userId);
-        
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
 
@@ -253,12 +251,9 @@ public class UserService {
         log.info("Successfully deactivated user: {}", user.getEmail());
     }
 
-    /**
-     * Activate user account
-     */
     public void activateUser(String userId) {
         log.info("Activating user with ID: {}", userId);
-        
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
 
@@ -269,23 +264,14 @@ public class UserService {
         log.info("Successfully activated user: {}", user.getEmail());
     }
 
-    /**
-     * Check if email exists
-     */
     public boolean emailExists(String email) {
         return userRepository.existsByEmail(email.toLowerCase().trim());
     }
 
-    /**
-     * Get user count by role
-     */
     public long getUserCountByRole(User.UserRole role) {
         return userRepository.findByRole(role).size();
     }
 
-    /**
-     * Get total user count
-     */
     public long getTotalUserCount() {
         return userRepository.count();
     }

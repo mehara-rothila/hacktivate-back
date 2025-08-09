@@ -29,21 +29,21 @@ public class CourseController {
     public ResponseEntity<ApiResponse> createCourse(@Valid @RequestBody CourseRequest courseRequest) {
         User currentUser = userService.getCurrentUser();
         CourseResponse newCourse = courseService.createCourse(courseRequest, currentUser);
-        return new ResponseEntity<>(new ApiResponse(true, "Course created successfully.", newCourse), HttpStatus.CREATED);
+        return new ResponseEntity<>(ApiResponse.builder().success(true).message("Course created successfully.").data(newCourse).build(), HttpStatus.CREATED);
     }
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse> getAllCourses() {
         List<CourseResponse> courses = courseService.getAllCourses();
-        return ResponseEntity.ok(new ApiResponse(true, "Courses retrieved successfully.", courses));
+        return ResponseEntity.ok(ApiResponse.builder().success(true).message("Courses retrieved successfully.").data(courses).build());
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse> getCourseById(@PathVariable String id) {
         CourseResponse course = courseService.getCourseById(id);
-        return ResponseEntity.ok(new ApiResponse(true, "Course retrieved successfully.", course));
+        return ResponseEntity.ok(ApiResponse.builder().success(true).message("Course retrieved successfully.").data(course).build());
     }
 
     @PostMapping("/{id}/enroll")
@@ -51,24 +51,22 @@ public class CourseController {
     public ResponseEntity<ApiResponse> enrollInCourse(@PathVariable String id) {
         User currentUser = userService.getCurrentUser();
         CourseResponse updatedCourse = courseService.enrollStudentInCourse(id, currentUser);
-        return ResponseEntity.ok(new ApiResponse(true, "Successfully enrolled in course.", updatedCourse));
+        return ResponseEntity.ok(ApiResponse.builder().success(true).message("Successfully enrolled in course.").data(updatedCourse).build());
     }
 
-    // Endpoint to get courses for the logged-in lecturer
     @GetMapping("/my-courses/lecturer")
     @PreAuthorize("hasRole('LECTURER')")
     public ResponseEntity<ApiResponse> getLecturerCourses() {
         User currentUser = userService.getCurrentUser();
         List<CourseResponse> courses = courseService.getCoursesByLecturer(currentUser.getId());
-        return ResponseEntity.ok(new ApiResponse(true, "Lecturer's courses retrieved successfully.", courses));
+        return ResponseEntity.ok(ApiResponse.builder().success(true).message("Lecturer's courses retrieved successfully.").data(courses).build());
     }
 
-    // Endpoint to get courses for the logged-in student
     @GetMapping("/my-courses/student")
     @PreAuthorize("hasRole('STUDENT')")
     public ResponseEntity<ApiResponse> getStudentCourses() {
         User currentUser = userService.getCurrentUser();
         List<CourseResponse> courses = courseService.getCoursesByStudent(currentUser.getId());
-        return ResponseEntity.ok(new ApiResponse(true, "Student's enrolled courses retrieved successfully.", courses));
+        return ResponseEntity.ok(ApiResponse.builder().success(true).message("Student's enrolled courses retrieved successfully.").data(courses).build());
     }
 }
