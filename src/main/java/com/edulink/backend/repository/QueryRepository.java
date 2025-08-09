@@ -1,11 +1,13 @@
 // File Path: src/main/java/com/edulink/backend/repository/QueryRepository.java
 package com.edulink.backend.repository;
 
+// Keep your entity import
 import com.edulink.backend.model.entity.Query;
 import com.edulink.backend.model.entity.Query.QueryCategory;
 import com.edulink.backend.model.entity.Query.QueryPriority;
 import com.edulink.backend.model.entity.Query.QueryStatus;
 import org.springframework.data.mongodb.repository.MongoRepository;
+// DO NOT import org.springframework.data.mongodb.repository.Query here
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -43,4 +45,34 @@ public interface QueryRepository extends MongoRepository<Query, String> {
     List<Query> findByStudentIdAndPriorityOrderBySubmittedAtDesc(String studentId, QueryPriority priority);
     List<Query> findByLecturerIdAndCategoryOrderBySubmittedAtDesc(String lecturerId, QueryCategory category);
     List<Query> findByLecturerIdAndPriorityOrderBySubmittedAtDesc(String lecturerId, QueryPriority priority);
+
+    // --- FIX: Using fully qualified name for the @Query annotation ---
+
+    @org.springframework.data.mongodb.repository.Query("{" +
+        "'studentId': ?0, " +
+        " $and: [" +
+        "   { $or: [ { ?1: null }, { 'status': ?1 } ] }," +
+        "   { $or: [ { ?2: null }, { 'category': ?2 } ] }," +
+        "   { $or: [ { ?3: null }, { 'priority': ?3 } ] }," +
+        "   { $or: [ { ?4: null }, { 'course': ?4 } ] }" +
+        " ]" +
+    "}")
+    List<Query> findByStudentIdWithFilters(String studentId, QueryStatus status, QueryCategory category, QueryPriority priority, String course);
+
+    @org.springframework.data.mongodb.repository.Query("{$and: [{'studentId': ?0}, {$or: [{'title': {$regex: ?1, $options: 'i'}}, {'description': {$regex: ?1, $options: 'i'}}]}]}")
+    List<Query> findByStudentIdAndTitleOrDescriptionContaining(String studentId, String searchTerm);
+
+    @org.springframework.data.mongodb.repository.Query("{" +
+        "'lecturerId': ?0, " +
+        " $and: [" +
+        "   { $or: [ { ?1: null }, { 'status': ?1 } ] }," +
+        "   { $or: [ { ?2: null }, { 'category': ?2 } ] }," +
+        "   { $or: [ { ?3: null }, { 'priority': ?3 } ] }," +
+        "   { $or: [ { ?4: null }, { 'course': ?4 } ] }" +
+        " ]" +
+    "}")
+    List<Query> findByLecturerIdWithFilters(String lecturerId, QueryStatus status, QueryCategory category, QueryPriority priority, String course);
+
+    @org.springframework.data.mongodb.repository.Query("{$and: [{'lecturerId': ?0}, {$or: [{'title': {$regex: ?1, $options: 'i'}}, {'description': {$regex: ?1, $options: 'i'}}]}]}")
+    List<Query> findByLecturerIdAndTitleOrDescriptionContaining(String lecturerId, String searchTerm);
 }
