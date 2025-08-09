@@ -8,7 +8,6 @@ import com.edulink.backend.model.entity.Query.QueryPriority;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.data.mongodb.repository.Query as MongoQuery;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -83,18 +82,18 @@ public interface QueryRepository extends MongoRepository<Query, String> {
     List<Query> findByAutoCloseAtBefore(LocalDateTime dateTime);
     
     // Custom search queries
-    @MongoQuery("{ 'lecturerId': ?0, '$or': [ " +
+    @org.springframework.data.mongodb.repository.Query("{ 'lecturerId': ?0, '$or': [ " +
                "{ 'title': { $regex: ?1, $options: 'i' } }, " +
                "{ 'description': { $regex: ?1, $options: 'i' } } ] }")
     List<Query> findByLecturerIdAndTitleOrDescriptionContaining(String lecturerId, String searchTerm);
     
-    @MongoQuery("{ 'studentId': ?0, '$or': [ " +
+    @org.springframework.data.mongodb.repository.Query("{ 'studentId': ?0, '$or': [ " +
                "{ 'title': { $regex: ?1, $options: 'i' } }, " +
                "{ 'description': { $regex: ?1, $options: 'i' } } ] }")
     List<Query> findByStudentIdAndTitleOrDescriptionContaining(String studentId, String searchTerm);
     
     // Complex filtering with multiple criteria
-    @MongoQuery("{ 'lecturerId': ?0, " +
+    @org.springframework.data.mongodb.repository.Query("{ 'lecturerId': ?0, " +
                "$and: [ " +
                "{ $or: [ { 'status': { $exists: false } }, { 'status': ?1 } ] }, " +
                "{ $or: [ { 'category': { $exists: false } }, { 'category': ?2 } ] }, " +
@@ -103,7 +102,7 @@ public interface QueryRepository extends MongoRepository<Query, String> {
     List<Query> findByLecturerIdWithFilters(String lecturerId, QueryStatus status, 
                                            QueryCategory category, QueryPriority priority, String course);
     
-    @MongoQuery("{ 'studentId': ?0, " +
+    @org.springframework.data.mongodb.repository.Query("{ 'studentId': ?0, " +
                "$and: [ " +
                "{ $or: [ { 'status': { $exists: false } }, { 'status': ?1 } ] }, " +
                "{ $or: [ { 'category': { $exists: false } }, { 'category': ?2 } ] }, " +
