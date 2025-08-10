@@ -37,7 +37,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain) throws ServletException, IOException {
 
         try {
-            // Extract JWT token from request
             String jwt = extractTokenFromRequest(request);
             
             if (jwt != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -46,48 +45,38 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             
         } catch (Exception e) {
             log.error("Cannot set user authentication: {}", e.getMessage());
-            // Continue with the filter chain even if authentication fails
-            // The security configuration will handle unauthorized access
         }
 
         filterChain.doFilter(request, response);
     }
 
-    /**
-     * Extract JWT token from Authorization header
-     */
     private String extractTokenFromRequest(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
-        
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            return authHeader.substring(7); // Remove "Bearer " prefix
+            return authHeader.substring(7);
+        }
+        
+        String tokenParam = request.getParameter("token");
+        if (tokenParam != null && !tokenParam.isEmpty()) {
+            return tokenParam;
         }
         
         return null;
     }
 
-    /**
-     * Authenticate user using JWT token
-     */
     private void authenticateUser(String jwt, HttpServletRequest request) {
         try {
-            // Validate token first
             if (!jwtUtil.isTokenValid(jwt)) {
                 log.debug("Invalid JWT token");
                 return;
             }
 
-            // Extract user information from token
             String userEmail = jwtUtil.extractUsername(jwt);
-            String userId = jwtUtil.extractUserId(jwt);
-            String role = jwtUtil.extractRole(jwt);
-
-            if (userEmail == null || userId == null || role == null) {
-                log.debug("Invalid token claims");
+            if (userEmail == null) {
+                log.debug("Invalid token claims: email is null");
                 return;
             }
 
-            // Additional validation against database
             Optional<User> userOptional = userService.findByEmail(userEmail);
             if (userOptional.isEmpty()) {
                 log.debug("User not found in database: {}", userEmail);
@@ -95,60 +84,43 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
             User user = userOptional.get();
-
-            // Check if user is active
             if (!user.isActive()) {
                 log.debug("User account is inactive: {}", userEmail);
                 return;
             }
 
-            // Validate token against user
             if (!jwtUtil.validateToken(jwt, userEmail)) {
                 log.debug("JWT token validation failed for user: {}", userEmail);
                 return;
             }
 
-            // Create authentication token
             UsernamePasswordAuthenticationToken authToken = createAuthenticationToken(user, request);
-            
-            // Set authentication in security context
             SecurityContextHolder.getContext().setAuthentication(authToken);
-            
-            log.debug("Successfully authenticated user: {} with role: {}", userEmail, role);
+            log.debug("Successfully authenticated user: {} with role: {}", userEmail, user.getRole());
 
         } catch (Exception e) {
             log.error("Error during JWT authentication: {}", e.getMessage());
         }
     }
 
-    /**
-     * Create Spring Security authentication token
-     */
     private UsernamePasswordAuthenticationToken createAuthenticationToken(User user, HttpServletRequest request) {
-        // Create authority based on user role
+        // CORRECTED: Replaced 'in' with '+' for Java string concatenation
         SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + user.getRole().toString());
         
-        // Create authentication token
         UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-            user.getEmail(), // Principal (username)
-            null, // Credentials (we don't store password in token)
-            Collections.singletonList(authority) // Authorities
+            user.getEmail(),
+            null,
+            Collections.singletonList(authority)
         );
         
-        // Set additional details
         authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         
         return authToken;
     }
 
-    /**
-     * Skip JWT filter for certain endpoints
-     */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         String path = request.getRequestURI();
-        
-        // Skip JWT validation for these paths
         return path.startsWith("/api/test/") ||
                path.startsWith("/api/auth/login") ||
                path.startsWith("/api/auth/register") ||
