@@ -5,10 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
@@ -16,49 +13,62 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-@Document(collection = "conversations")
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@Document(collection = "conversations")
 public class Conversation {
-
+    
     @Id
     private String id;
-
-    @Indexed
-    private Set<String> participantIds; // Set of User IDs (student and lecturer)
-
+    
+    private Set<String> participantIds; // User IDs involved in conversation
     private String subject;
-    private String courseId; // Optional: link to a course
-
-    @Indexed
+    private String courseId; // Optional - if conversation is related to a course
     private Status status;
     private Priority priority;
-
-    // --- Embedded Messages ---
-    private List<Message> messages = new ArrayList<>();
-
-    // --- Tracking Fields ---
+    
+    // Last message info for quick access
     private String lastMessageContent;
     private LocalDateTime lastMessageAt;
     private String lastMessageSenderId;
-
-    @CreatedDate
+    
+    @Builder.Default
+    private List<Message> messages = new ArrayList<>();
+    
     private LocalDateTime createdAt;
-
-    @LastModifiedDate
     private LocalDateTime updatedAt;
-
+    
+    // Enums
     public enum Status {
-        ACTIVE,
-        RESOLVED,
-        ARCHIVED
+        ACTIVE, RESOLVED, ARCHIVED
     }
-
+    
     public enum Priority {
-        LOW,
-        MEDIUM,
-        HIGH
+        LOW, MEDIUM, HIGH
+    }
+    
+    // Inner Message class - matches frontend expectations
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class Message {
+        private String id;
+        private String senderId;
+        private String content;
+        private LocalDateTime timestamp;
+        private boolean isRead;
+        private List<Attachment> attachments;
+        
+        @Data
+        @Builder
+        @NoArgsConstructor
+        @AllArgsConstructor
+        public static class Attachment {
+            private String resourceId;
+            private String originalFilename;
+        }
     }
 }

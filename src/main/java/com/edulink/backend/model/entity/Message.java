@@ -10,24 +10,24 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class Message {
-
-    private String id; // Unique ID for each message
+    
+    private String id;
     private String senderId;
     private String content;
     private LocalDateTime timestamp;
     private boolean isRead;
     private List<Attachment> attachments;
-
+    
     @Data
+    @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    @Builder
     public static class Attachment {
-        private String resourceId; // Link to the Resource entity
+        private String resourceId;
         private String originalFilename;
     }
 }

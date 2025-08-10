@@ -12,24 +12,28 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
-    public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // The endpoint that clients will connect to for WebSocket communication.
-        // "/ws" is a common convention.
-        // withSockJS() provides a fallback for browsers that don't support WebSocket.
-        registry.addEndpoint("/ws")
-                .setAllowedOrigins("http://localhost:3000", "http://localhost:3001") // Allow frontend origins
-                .withSockJS();
+    public void configureMessageBroker(MessageBrokerRegistry config) {
+        // Enable a simple memory-based message broker to carry messages back to the client
+        // on destinations prefixed with "/topic" and "/queue"
+        config.enableSimpleBroker("/topic", "/queue");
+        
+        // Designate the "/app" prefix for messages that are bound to methods
+        // annotated with @MessageMapping
+        config.setApplicationDestinationPrefixes("/app");
+        
+        // Set user destination prefix for personal messages
+        config.setUserDestinationPrefix("/user");
     }
 
     @Override
-    public void configureMessageBroker(MessageBrokerRegistry registry) {
-        // Defines the prefix for destinations that are handled by the message broker.
-        // Clients will subscribe to topics starting with "/topic".
-        // For example, a client will subscribe to "/topic/chat/{conversationId}" to receive messages.
-        registry.enableSimpleBroker("/topic");
-
-        // Defines the prefix for messages that are bound for @MessageMapping-annotated methods
-        // in our controllers. Clients will send messages to destinations like "/app/chat.sendMessage".
-        registry.setApplicationDestinationPrefixes("/app");
+    public void registerStompEndpoints(StompEndpointRegistry registry) {
+        // Register the "/ws" endpoint for WebSocket connections
+        registry.addEndpoint("/ws")
+                .setAllowedOriginPatterns("*") // In production, specify exact origins
+                .withSockJS(); // Enable SockJS fallback options
+        
+        // Also register without SockJS for direct WebSocket connection
+        registry.addEndpoint("/ws")
+                .setAllowedOriginPatterns("*");
     }
 }
