@@ -5,7 +5,6 @@ import com.edulink.backend.dto.response.ApiResponse;
 import com.edulink.backend.dto.response.ConversationDTO;
 import com.edulink.backend.dto.response.UserProfileResponse;
 import com.edulink.backend.model.entity.Conversation;
-import com.edulink.backend.model.entity.Message;
 import com.edulink.backend.model.entity.User;
 import com.edulink.backend.repository.ConversationRepository;
 import com.edulink.backend.repository.UserRepository;
@@ -79,8 +78,8 @@ public class ConversationController {
         participantIds.add(currentUser.getId());
         participantIds.add(recipient.getId());
 
-        // Create the first message
-        Message firstMessage = Message.builder()
+        // Create the first message - FIXED: Using Conversation.Message
+        Conversation.Message firstMessage = Conversation.Message.builder()
                 .id(UUID.randomUUID().toString())
                 .senderId(currentUser.getId())
                 .content(request.getInitialMessage())
@@ -168,7 +167,8 @@ public class ConversationController {
             throw new SecurityException("User is not a participant in this conversation.");
         }
 
-        List<Message> messages = conversation.getMessages();
+        // FIXED: Return Conversation.Message list directly
+        List<Conversation.Message> messages = conversation.getMessages();
         return ResponseEntity.ok(
             ApiResponse.builder()
                 .success(true)
@@ -193,8 +193,8 @@ public class ConversationController {
             throw new SecurityException("User is not a participant in this conversation.");
         }
 
-        // Create new message
-        Message newMessage = Message.builder()
+        // Create new message - FIXED: Using Conversation.Message
+        Conversation.Message newMessage = Conversation.Message.builder()
                 .id(UUID.randomUUID().toString())
                 .senderId(currentUser.getId())
                 .content(request.getContent())
@@ -204,8 +204,8 @@ public class ConversationController {
 
         // Add attachments if provided
         if (request.getAttachmentIds() != null && !request.getAttachmentIds().isEmpty()) {
-            List<Message.Attachment> attachments = request.getAttachmentIds().stream()
-                    .map(attachmentId -> Message.Attachment.builder()
+            List<Conversation.Message.Attachment> attachments = request.getAttachmentIds().stream()
+                    .map(attachmentId -> Conversation.Message.Attachment.builder()
                             .resourceId(attachmentId)
                             .originalFilename("attachment") // You might want to get this from resource service
                             .build())
