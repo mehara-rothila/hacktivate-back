@@ -36,12 +36,16 @@ public class RegisterRequest {
     private String studentId;
     private String year; // Freshman, Sophomore, Junior, Senior
     private String major;
+    private String minor; // MISSING FIELD - Added
+    private String program; // MISSING FIELD - Added
     private String guardianContact;
 
     // Optional fields for lecturers
     private String employeeId;
     private String office;
     private String phone;
+    private String title; // MISSING FIELD - Added (Dr., Prof., etc.)
+    private String position; // MISSING FIELD - Added (Professor, Associate Professor, etc.)
 
     // Common optional fields
     private String avatar; // URL or base64 encoded image
@@ -132,6 +136,24 @@ public class RegisterRequest {
         this.major = major;
     }
 
+    // MISSING GETTER/SETTER - Added
+    public String getMinor() {
+        return minor;
+    }
+
+    public void setMinor(String minor) {
+        this.minor = minor;
+    }
+
+    // MISSING GETTER/SETTER - Added
+    public String getProgram() {
+        return program;
+    }
+
+    public void setProgram(String program) {
+        this.program = program;
+    }
+
     public String getGuardianContact() {
         return guardianContact;
     }
@@ -162,6 +184,24 @@ public class RegisterRequest {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    // MISSING GETTER/SETTER - Added
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    // MISSING GETTER/SETTER - Added
+    public String getPosition() {
+        return position;
+    }
+
+    public void setPosition(String position) {
+        this.position = position;
     }
 
     public String getAvatar() {

@@ -31,14 +31,15 @@ public class User {
     
     private UserProfile profile;
     
+    @Builder.Default  // Fixed Lombok warning
     private boolean isActive = true;
     
     private LocalDateTime lastLogin;
     
-    @Builder.Default
+    @Builder.Default  // Fixed Lombok warning
     private LocalDateTime createdAt = LocalDateTime.now();
     
-    @Builder.Default
+    @Builder.Default  // Fixed Lombok warning
     private LocalDateTime updatedAt = LocalDateTime.now();
 
     // Role enumeration
@@ -100,7 +101,7 @@ public class User {
         private String room;
         
         // Additional profile fields
-        @Builder.Default
+        @Builder.Default  // Fixed Lombok warning
         private LocalDateTime updatedAt = LocalDateTime.now();
     }
 
