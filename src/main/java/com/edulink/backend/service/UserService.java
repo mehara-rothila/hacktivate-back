@@ -55,16 +55,35 @@ public class UserService {
             profile.setStudentId(request.getStudentId());
             profile.setYear(request.getYear());
             profile.setMajor(request.getMajor());
+            if (request.getProgram() != null) {
+                profile.setProgram(request.getProgram());
+            }
+            if (request.getMinor() != null) {
+                profile.setMinor(request.getMinor());
+            }
+            // Set default values for students
+            profile.setEnrollmentStatus("full-time");
+            profile.setAcademicStanding("good");
         } else if (user.getRole() == User.UserRole.LECTURER) {
             profile.setEmployeeId(request.getEmployeeId());
             profile.setOffice(request.getOffice());
             profile.setPhone(request.getPhone());
+            if (request.getTitle() != null) {
+                profile.setTitle(request.getTitle());
+            }
+            if (request.getPosition() != null) {
+                profile.setPosition(request.getPosition());
+            }
+            // Set default values for lecturers
+            profile.setEmploymentType("full-time");
+            profile.setStatus("active");
         }
 
         if (request.getAvatar() != null && !request.getAvatar().trim().isEmpty()) {
             profile.setAvatar(request.getAvatar().trim());
         }
 
+        profile.setUpdatedAt(LocalDateTime.now());
         user.setProfile(profile);
 
         User savedUser = userRepository.save(user);
@@ -122,7 +141,7 @@ public class UserService {
         if (user == null || user.getProfile() == null) {
             return null;
         }
-        // CORRECTED: Use the no-argument constructor and setters
+        
         UserProfileResponse response = new UserProfileResponse();
         response.setId(user.getId());
         response.setEmail(user.getEmail());
@@ -131,15 +150,54 @@ public class UserService {
         response.setRole(user.getRole().name());
         response.setDepartment(user.getProfile().getDepartment());
         response.setAvatar(user.getProfile().getAvatar());
+        response.setPhone(user.getProfile().getPhone());
+        response.setBio(user.getProfile().getBio());
+        response.setDateOfBirth(user.getProfile().getDateOfBirth());
+        response.setGender(user.getProfile().getGender());
+        response.setAddress(user.getProfile().getAddress());
+        response.setCity(user.getProfile().getCity());
+        response.setCountry(user.getProfile().getCountry());
+        response.setPostalCode(user.getProfile().getPostalCode());
+        response.setEmergencyContact(user.getProfile().getEmergencyContact());
+        response.setEmergencyPhone(user.getProfile().getEmergencyPhone());
+        response.setLinkedIn(user.getProfile().getLinkedIn());
+        response.setGithub(user.getProfile().getGithub());
+        response.setPortfolio(user.getProfile().getPortfolio());
+        response.setWebsite(user.getProfile().getWebsite());
+        response.setResearchGate(user.getProfile().getResearchGate());
+        response.setOrcid(user.getProfile().getOrcid());
+        
+        // Student-specific fields
         response.setStudentId(user.getProfile().getStudentId());
-        response.setEmployeeId(user.getProfile().getEmployeeId());
         response.setYear(user.getProfile().getYear());
         response.setMajor(user.getProfile().getMajor());
+        response.setMinor(user.getProfile().getMinor());
+        response.setProgram(user.getProfile().getProgram());
+        response.setGpa(user.getProfile().getGpa());
+        response.setExpectedGraduation(user.getProfile().getExpectedGraduation());
+        response.setEnrollmentStatus(user.getProfile().getEnrollmentStatus());
+        response.setAcademicStanding(user.getProfile().getAcademicStanding());
+        
+        // Lecturer-specific fields
+        response.setEmployeeId(user.getProfile().getEmployeeId());
         response.setOffice(user.getProfile().getOffice());
-        response.setPhone(user.getProfile().getPhone());
+        response.setTitle(user.getProfile().getTitle());
+        response.setPosition(user.getProfile().getPosition());
+        response.setQualification(user.getProfile().getQualification());
+        response.setExperience(user.getProfile().getExperience());
+        response.setEmploymentType(user.getProfile().getEmploymentType());
+        response.setStatus(user.getProfile().getStatus());
+        response.setOfficeAddress(user.getProfile().getOfficeAddress());
+        response.setOfficeHours(user.getProfile().getOfficeHours());
+        response.setCampus(user.getProfile().getCampus());
+        response.setBuilding(user.getProfile().getBuilding());
+        response.setRoom(user.getProfile().getRoom());
+        
         response.setActive(user.isActive());
         response.setLastLogin(user.getLastLogin());
         response.setCreatedAt(user.getCreatedAt());
+        response.setUpdatedAt(user.getUpdatedAt());
+        
         return response;
     }
 
@@ -167,6 +225,7 @@ public class UserService {
             currentProfile = new User.UserProfile();
         }
 
+        // Update basic profile fields
         if (profileUpdate.getFirstName() != null) {
             currentProfile.setFirstName(profileUpdate.getFirstName().trim());
         }
@@ -179,13 +238,56 @@ public class UserService {
         if (profileUpdate.getPhone() != null) {
             currentProfile.setPhone(profileUpdate.getPhone().trim());
         }
-        if (profileUpdate.getOffice() != null) {
-            currentProfile.setOffice(profileUpdate.getOffice().trim());
-        }
         if (profileUpdate.getAvatar() != null) {
             currentProfile.setAvatar(profileUpdate.getAvatar().trim());
         }
+        if (profileUpdate.getBio() != null) {
+            currentProfile.setBio(profileUpdate.getBio().trim());
+        }
+        if (profileUpdate.getDateOfBirth() != null) {
+            currentProfile.setDateOfBirth(profileUpdate.getDateOfBirth());
+        }
+        if (profileUpdate.getGender() != null) {
+            currentProfile.setGender(profileUpdate.getGender());
+        }
+        if (profileUpdate.getAddress() != null) {
+            currentProfile.setAddress(profileUpdate.getAddress().trim());
+        }
+        if (profileUpdate.getCity() != null) {
+            currentProfile.setCity(profileUpdate.getCity().trim());
+        }
+        if (profileUpdate.getCountry() != null) {
+            currentProfile.setCountry(profileUpdate.getCountry().trim());
+        }
+        if (profileUpdate.getPostalCode() != null) {
+            currentProfile.setPostalCode(profileUpdate.getPostalCode().trim());
+        }
+        if (profileUpdate.getEmergencyContact() != null) {
+            currentProfile.setEmergencyContact(profileUpdate.getEmergencyContact().trim());
+        }
+        if (profileUpdate.getEmergencyPhone() != null) {
+            currentProfile.setEmergencyPhone(profileUpdate.getEmergencyPhone().trim());
+        }
+        if (profileUpdate.getLinkedIn() != null) {
+            currentProfile.setLinkedIn(profileUpdate.getLinkedIn().trim());
+        }
+        if (profileUpdate.getGithub() != null) {
+            currentProfile.setGithub(profileUpdate.getGithub().trim());
+        }
+        if (profileUpdate.getPortfolio() != null) {
+            currentProfile.setPortfolio(profileUpdate.getPortfolio().trim());
+        }
+        if (profileUpdate.getWebsite() != null) {
+            currentProfile.setWebsite(profileUpdate.getWebsite().trim());
+        }
+        if (profileUpdate.getResearchGate() != null) {
+            currentProfile.setResearchGate(profileUpdate.getResearchGate().trim());
+        }
+        if (profileUpdate.getOrcid() != null) {
+            currentProfile.setOrcid(profileUpdate.getOrcid().trim());
+        }
 
+        // Student-specific updates
         if (user.getRole() == User.UserRole.STUDENT) {
             if (profileUpdate.getYear() != null) {
                 currentProfile.setYear(profileUpdate.getYear());
@@ -193,8 +295,67 @@ public class UserService {
             if (profileUpdate.getMajor() != null) {
                 currentProfile.setMajor(profileUpdate.getMajor().trim());
             }
+            if (profileUpdate.getMinor() != null) {
+                currentProfile.setMinor(profileUpdate.getMinor().trim());
+            }
+            if (profileUpdate.getProgram() != null) {
+                currentProfile.setProgram(profileUpdate.getProgram().trim());
+            }
+            if (profileUpdate.getGpa() != null) {
+                currentProfile.setGpa(profileUpdate.getGpa());
+            }
+            if (profileUpdate.getExpectedGraduation() != null) {
+                currentProfile.setExpectedGraduation(profileUpdate.getExpectedGraduation());
+            }
+            if (profileUpdate.getEnrollmentStatus() != null) {
+                currentProfile.setEnrollmentStatus(profileUpdate.getEnrollmentStatus());
+            }
+            if (profileUpdate.getAcademicStanding() != null) {
+                currentProfile.setAcademicStanding(profileUpdate.getAcademicStanding());
+            }
         }
 
+        // Lecturer-specific updates
+        if (user.getRole() == User.UserRole.LECTURER) {
+            if (profileUpdate.getOffice() != null) {
+                currentProfile.setOffice(profileUpdate.getOffice().trim());
+            }
+            if (profileUpdate.getTitle() != null) {
+                currentProfile.setTitle(profileUpdate.getTitle().trim());
+            }
+            if (profileUpdate.getPosition() != null) {
+                currentProfile.setPosition(profileUpdate.getPosition().trim());
+            }
+            if (profileUpdate.getQualification() != null) {
+                currentProfile.setQualification(profileUpdate.getQualification().trim());
+            }
+            if (profileUpdate.getExperience() != null) {
+                currentProfile.setExperience(profileUpdate.getExperience().trim());
+            }
+            if (profileUpdate.getEmploymentType() != null) {
+                currentProfile.setEmploymentType(profileUpdate.getEmploymentType());
+            }
+            if (profileUpdate.getStatus() != null) {
+                currentProfile.setStatus(profileUpdate.getStatus());
+            }
+            if (profileUpdate.getOfficeAddress() != null) {
+                currentProfile.setOfficeAddress(profileUpdate.getOfficeAddress().trim());
+            }
+            if (profileUpdate.getOfficeHours() != null) {
+                currentProfile.setOfficeHours(profileUpdate.getOfficeHours().trim());
+            }
+            if (profileUpdate.getCampus() != null) {
+                currentProfile.setCampus(profileUpdate.getCampus().trim());
+            }
+            if (profileUpdate.getBuilding() != null) {
+                currentProfile.setBuilding(profileUpdate.getBuilding().trim());
+            }
+            if (profileUpdate.getRoom() != null) {
+                currentProfile.setRoom(profileUpdate.getRoom().trim());
+            }
+        }
+
+        currentProfile.setUpdatedAt(LocalDateTime.now());
         user.setProfile(currentProfile);
         user.setUpdatedAt(LocalDateTime.now());
 
