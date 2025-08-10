@@ -3,6 +3,8 @@ package com.edulink.backend.dto.response;
 
 import com.edulink.backend.model.entity.User;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.ArrayList;
 
 public class UserProfileResponse {
     
@@ -48,6 +50,12 @@ public class UserProfileResponse {
     private String expectedGraduation;
     private String enrollmentStatus;
     private String academicStanding;
+    
+    // Academic Records
+    private List<AcademicRecordResponse> academicRecords = new ArrayList<>();
+    private Double calculatedGPA;
+    private Integer totalCompletedCredits;
+    private Integer completedCoursesCount;
 
     // Lecturer-specific fields
     private String employeeId;
@@ -64,6 +72,66 @@ public class UserProfileResponse {
     private String building;
     private String room;
 
+    // Academic Record Response DTO
+    public static class AcademicRecordResponse {
+        private String id;
+        private String courseCode;
+        private String courseName;
+        private String semester;
+        private Integer credits;
+        private String grade;
+        private String year;
+        private String status;
+        private LocalDateTime recordedAt;
+        
+        // Constructors
+        public AcademicRecordResponse() {}
+        
+        public static AcademicRecordResponse fromAcademicRecord(User.AcademicRecord record) {
+            if (record == null) return null;
+            
+            AcademicRecordResponse response = new AcademicRecordResponse();
+            response.id = record.getId();
+            response.courseCode = record.getCourseCode();
+            response.courseName = record.getCourseName();
+            response.semester = record.getSemester();
+            response.credits = record.getCredits();
+            response.grade = record.getGrade();
+            response.year = record.getYear();
+            response.status = record.getStatus();
+            response.recordedAt = record.getRecordedAt();
+            return response;
+        }
+        
+        // Getters and Setters
+        public String getId() { return id; }
+        public void setId(String id) { this.id = id; }
+        
+        public String getCourseCode() { return courseCode; }
+        public void setCourseCode(String courseCode) { this.courseCode = courseCode; }
+        
+        public String getCourseName() { return courseName; }
+        public void setCourseName(String courseName) { this.courseName = courseName; }
+        
+        public String getSemester() { return semester; }
+        public void setSemester(String semester) { this.semester = semester; }
+        
+        public Integer getCredits() { return credits; }
+        public void setCredits(Integer credits) { this.credits = credits; }
+        
+        public String getGrade() { return grade; }
+        public void setGrade(String grade) { this.grade = grade; }
+        
+        public String getYear() { return year; }
+        public void setYear(String year) { this.year = year; }
+        
+        public String getStatus() { return status; }
+        public void setStatus(String status) { this.status = status; }
+        
+        public LocalDateTime getRecordedAt() { return recordedAt; }
+        public void setRecordedAt(LocalDateTime recordedAt) { this.recordedAt = recordedAt; }
+    }
+
     // Constructors
     public UserProfileResponse() {}
 
@@ -72,18 +140,79 @@ public class UserProfileResponse {
         if (user == null) return null;
         
         UserProfileResponse response = new UserProfileResponse();
+        User.UserProfile profile = user.getProfile();
+        
+        // Basic fields
         response.id = user.getId();
         response.email = user.getEmail();
-        response.firstName = user.getProfile() != null ? user.getProfile().getFirstName() : null;
-        response.lastName = user.getProfile() != null ? user.getProfile().getLastName() : null;
+        response.firstName = profile != null ? profile.getFirstName() : null;
+        response.lastName = profile != null ? profile.getLastName() : null;
         response.role = user.getRole() != null ? user.getRole().toString() : null;
-        response.department = user.getProfile() != null ? user.getProfile().getDepartment() : null;
-        response.avatar = user.getProfile() != null ? user.getProfile().getAvatar() : null;
-        response.phone = user.getProfile() != null ? user.getProfile().getPhone() : null;
+        response.department = profile != null ? profile.getDepartment() : null;
+        response.avatar = profile != null ? profile.getAvatar() : null;
+        response.phone = profile != null ? profile.getPhone() : null;
         response.isActive = user.isActive();
         response.lastLogin = user.getLastLogin();
         response.createdAt = user.getCreatedAt();
         response.updatedAt = user.getUpdatedAt();
+        
+        if (profile != null) {
+            // Personal Information
+            response.bio = profile.getBio();
+            response.dateOfBirth = profile.getDateOfBirth();
+            response.gender = profile.getGender();
+            response.address = profile.getAddress();
+            response.city = profile.getCity();
+            response.country = profile.getCountry();
+            response.postalCode = profile.getPostalCode();
+            response.emergencyContact = profile.getEmergencyContact();
+            response.emergencyPhone = profile.getEmergencyPhone();
+            
+            // Social Links
+            response.linkedIn = profile.getLinkedIn();
+            response.github = profile.getGithub();
+            response.portfolio = profile.getPortfolio();
+            response.website = profile.getWebsite();
+            response.researchGate = profile.getResearchGate();
+            response.orcid = profile.getOrcid();
+            
+            // Student-specific fields
+            response.studentId = profile.getStudentId();
+            response.year = profile.getYear();
+            response.major = profile.getMajor();
+            response.minor = profile.getMinor();
+            response.program = profile.getProgram();
+            response.gpa = profile.getGpa();
+            response.expectedGraduation = profile.getExpectedGraduation();
+            response.enrollmentStatus = profile.getEnrollmentStatus();
+            response.academicStanding = profile.getAcademicStanding();
+            
+            // Academic Records
+            if (profile.getAcademicRecords() != null) {
+                response.academicRecords = profile.getAcademicRecords().stream()
+                        .map(AcademicRecordResponse::fromAcademicRecord)
+                        .toList();
+            }
+            response.calculatedGPA = profile.calculateGPA();
+            response.totalCompletedCredits = profile.getTotalCompletedCredits();
+            response.completedCoursesCount = profile.getCompletedCoursesCount();
+            
+            // Lecturer-specific fields
+            response.employeeId = profile.getEmployeeId();
+            response.office = profile.getOffice();
+            response.title = profile.getTitle();
+            response.position = profile.getPosition();
+            response.qualification = profile.getQualification();
+            response.experience = profile.getExperience();
+            response.employmentType = profile.getEmploymentType();
+            response.status = profile.getStatus();
+            response.officeAddress = profile.getOfficeAddress();
+            response.officeHours = profile.getOfficeHours();
+            response.campus = profile.getCampus();
+            response.building = profile.getBuilding();
+            response.room = profile.getRoom();
+        }
+        
         return response;
     }
 
@@ -198,6 +327,19 @@ public class UserProfileResponse {
 
     public String getAcademicStanding() { return academicStanding; }
     public void setAcademicStanding(String academicStanding) { this.academicStanding = academicStanding; }
+
+    // Academic Records Getters and Setters
+    public List<AcademicRecordResponse> getAcademicRecords() { return academicRecords; }
+    public void setAcademicRecords(List<AcademicRecordResponse> academicRecords) { this.academicRecords = academicRecords; }
+
+    public Double getCalculatedGPA() { return calculatedGPA; }
+    public void setCalculatedGPA(Double calculatedGPA) { this.calculatedGPA = calculatedGPA; }
+
+    public Integer getTotalCompletedCredits() { return totalCompletedCredits; }
+    public void setTotalCompletedCredits(Integer totalCompletedCredits) { this.totalCompletedCredits = totalCompletedCredits; }
+
+    public Integer getCompletedCoursesCount() { return completedCoursesCount; }
+    public void setCompletedCoursesCount(Integer completedCoursesCount) { this.completedCoursesCount = completedCoursesCount; }
 
     // Lecturer-specific Getters and Setters
     public String getEmployeeId() { return employeeId; }
