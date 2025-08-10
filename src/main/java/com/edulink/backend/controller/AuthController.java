@@ -22,7 +22,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -184,6 +186,233 @@ public class AuthController {
                     .body(ApiResponse.error("Failed to update profile", e.getMessage()));
         }
     }
+
+    // =================== ACADEMIC RECORDS ENDPOINTS ===================
+
+    /**
+     * Add an academic record
+     */
+    @PostMapping("/profile/academic-records")
+    public ResponseEntity<ApiResponse<UserProfileResponse.AcademicRecordResponse>> addAcademicRecord(
+            @RequestBody User.AcademicRecord academicRecord,
+            Authentication authentication) {
+        try {
+            String userEmail = authentication.getName();
+            log.info("Adding academic record for user: {}", userEmail);
+            
+            User user = userService.findByEmail(userEmail)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            
+            if (!user.isStudent()) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ApiResponse.error("Only students can add academic records"));
+            }
+            
+            // Set ID and recorded time
+            academicRecord.setId(UUID.randomUUID().toString());
+            academicRecord.setRecordedAt(LocalDateTime.now());
+            
+            // Get current profile
+            User.UserProfile profile = user.getProfile();
+            if (profile == null) {
+                profile = new User.UserProfile();
+                user.setProfile(profile);
+            }
+            
+            // Add academic record
+            if (profile.getAcademicRecords() == null) {
+                profile.setAcademicRecords(new java.util.ArrayList<>());
+            }
+            profile.getAcademicRecords().add(academicRecord);
+            
+            // Update GPA if this is a completed course
+            if ("completed".equals(academicRecord.getStatus())) {
+                Double calculatedGPA = profile.calculateGPA();
+                profile.setGpa(String.format("%.2f", calculatedGPA));
+            }
+            
+            // Save user
+            User updatedUser = userService.updateUserProfile(user.getId(), profile);
+            
+            // Return the added record
+            UserProfileResponse.AcademicRecordResponse response = 
+                    UserProfileResponse.AcademicRecordResponse.fromAcademicRecord(academicRecord);
+            
+            return ResponseEntity.ok(ApiResponse.success(response, "Academic record added successfully"));
+            
+        } catch (Exception e) {
+            log.error("Failed to add academic record for user: {}", authentication.getName(), e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error("Failed to add academic record", e.getMessage()));
+        }
+    }
+
+    /**
+     * Update an academic record
+     */
+    @PutMapping("/profile/academic-records/{recordId}")
+    public ResponseEntity<ApiResponse<UserProfileResponse.AcademicRecordResponse>> updateAcademicRecord(
+            @PathVariable String recordId,
+            @RequestBody User.AcademicRecord academicRecordUpdate,
+            Authentication authentication) {
+        try {
+            String userEmail = authentication.getName();
+            log.info("Updating academic record {} for user: {}", recordId, userEmail);
+            
+            User user = userService.findByEmail(userEmail)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            
+            if (!user.isStudent()) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ApiResponse.error("Only students can update academic records"));
+            }
+            
+            User.UserProfile profile = user.getProfile();
+            if (profile == null || profile.getAcademicRecords() == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(ApiResponse.error("Academic record not found"));
+            }
+            
+            // Find and update the record
+            User.AcademicRecord recordToUpdate = profile.getAcademicRecords().stream()
+                    .filter(record -> recordId.equals(record.getId()))
+                    .findFirst()
+                    .orElse(null);
+            
+            if (recordToUpdate == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(ApiResponse.error("Academic record not found"));
+            }
+            
+            // Update fields
+            if (academicRecordUpdate.getCourseCode() != null) {
+                recordToUpdate.setCourseCode(academicRecordUpdate.getCourseCode());
+            }
+            if (academicRecordUpdate.getCourseName() != null) {
+                recordToUpdate.setCourseName(academicRecordUpdate.getCourseName());
+            }
+            if (academicRecordUpdate.getSemester() != null) {
+                recordToUpdate.setSemester(academicRecordUpdate.getSemester());
+            }
+            if (academicRecordUpdate.getCredits() != null) {
+                recordToUpdate.setCredits(academicRecordUpdate.getCredits());
+            }
+            if (academicRecordUpdate.getGrade() != null) {
+                recordToUpdate.setGrade(academicRecordUpdate.getGrade());
+            }
+            if (academicRecordUpdate.getYear() != null) {
+                recordToUpdate.setYear(academicRecordUpdate.getYear());
+            }
+            if (academicRecordUpdate.getStatus() != null) {
+                recordToUpdate.setStatus(academicRecordUpdate.getStatus());
+            }
+            
+            // Recalculate GPA
+            Double calculatedGPA = profile.calculateGPA();
+            profile.setGpa(String.format("%.2f", calculatedGPA));
+            
+            // Save user
+            User updatedUser = userService.updateUserProfile(user.getId(), profile);
+            
+            // Return updated record
+            UserProfileResponse.AcademicRecordResponse response = 
+                    UserProfileResponse.AcademicRecordResponse.fromAcademicRecord(recordToUpdate);
+            
+            return ResponseEntity.ok(ApiResponse.success(response, "Academic record updated successfully"));
+            
+        } catch (Exception e) {
+            log.error("Failed to update academic record for user: {}", authentication.getName(), e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error("Failed to update academic record", e.getMessage()));
+        }
+    }
+
+    /**
+     * Delete an academic record
+     */
+    @DeleteMapping("/profile/academic-records/{recordId}")
+    public ResponseEntity<ApiResponse<String>> deleteAcademicRecord(
+            @PathVariable String recordId,
+            Authentication authentication) {
+        try {
+            String userEmail = authentication.getName();
+            log.info("Deleting academic record {} for user: {}", recordId, userEmail);
+            
+            User user = userService.findByEmail(userEmail)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            
+            if (!user.isStudent()) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ApiResponse.error("Only students can delete academic records"));
+            }
+            
+            User.UserProfile profile = user.getProfile();
+            if (profile == null || profile.getAcademicRecords() == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(ApiResponse.error("Academic record not found"));
+            }
+            
+            // Remove the record
+            boolean removed = profile.getAcademicRecords().removeIf(record -> recordId.equals(record.getId()));
+            
+            if (!removed) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(ApiResponse.error("Academic record not found"));
+            }
+            
+            // Recalculate GPA
+            Double calculatedGPA = profile.calculateGPA();
+            profile.setGpa(String.format("%.2f", calculatedGPA));
+            
+            // Save user
+            userService.updateUserProfile(user.getId(), profile);
+            
+            return ResponseEntity.ok(ApiResponse.success("Academic record deleted successfully"));
+            
+        } catch (Exception e) {
+            log.error("Failed to delete academic record for user: {}", authentication.getName(), e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error("Failed to delete academic record", e.getMessage()));
+        }
+    }
+
+    /**
+     * Get all academic records for current user
+     */
+    @GetMapping("/profile/academic-records")
+    public ResponseEntity<ApiResponse<List<UserProfileResponse.AcademicRecordResponse>>> getAcademicRecords(
+            Authentication authentication) {
+        try {
+            String userEmail = authentication.getName();
+            log.info("Getting academic records for user: {}", userEmail);
+            
+            User user = userService.findByEmail(userEmail)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            
+            if (!user.isStudent()) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ApiResponse.error("Only students can view academic records"));
+            }
+            
+            User.UserProfile profile = user.getProfile();
+            List<UserProfileResponse.AcademicRecordResponse> records = new java.util.ArrayList<>();
+            
+            if (profile != null && profile.getAcademicRecords() != null) {
+                records = profile.getAcademicRecords().stream()
+                        .map(UserProfileResponse.AcademicRecordResponse::fromAcademicRecord)
+                        .toList();
+            }
+            
+            return ResponseEntity.ok(ApiResponse.success(records, "Academic records retrieved successfully"));
+            
+        } catch (Exception e) {
+            log.error("Failed to get academic records for user: {}", authentication.getName(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to retrieve academic records", e.getMessage()));
+        }
+    }
+
+    // =================== EXISTING ENDPOINTS ===================
 
     /**
      * Upload or update profile picture
