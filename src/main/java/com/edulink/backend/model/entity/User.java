@@ -1,13 +1,21 @@
 // File Path: src/main/java/com/edulink/backend/model/entity/User.java
 package com.edulink.backend.model.entity;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
 
 @Document(collection = "users")
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class User {
     
     @Id
@@ -16,8 +24,9 @@ public class User {
     @Indexed(unique = true)
     private String email;
     
-    private String password; // Will be bcrypt hashed
+    private String password;
     
+    @Indexed
     private UserRole role;
     
     private UserProfile profile;
@@ -26,70 +35,77 @@ public class User {
     
     private LocalDateTime lastLogin;
     
+    @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
     
+    @Builder.Default
     private LocalDateTime updatedAt = LocalDateTime.now();
 
-    // Default constructor
-    public User() {}
-
-    // Constructor with essential fields
-    public User(String email, String password, UserRole role) {
-        this.email = email;
-        this.password = password;
-        this.role = role;
-        this.isActive = true;
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+    // Role enumeration
+    public enum UserRole {
+        STUDENT, LECTURER, ADMIN
     }
 
-    // Getters and Setters
-    public String getId() {
-        return id;
+    // Nested UserProfile class
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class UserProfile {
+        private String firstName;
+        private String lastName;
+        private String department;
+        private String phone;
+        private String avatar; // Profile picture filename
+        private String bio;
+        private String dateOfBirth;
+        private String gender;
+        private String address;
+        private String city;
+        private String country;
+        private String postalCode;
+        private String emergencyContact;
+        private String emergencyPhone;
+        private String linkedIn;
+        private String github;
+        private String portfolio;
+        private String website;
+        private String researchGate;
+        private String orcid;
+        
+        // Student-specific fields
+        private String studentId;
+        private String year;
+        private String major;
+        private String minor;
+        private String program;
+        private String gpa;
+        private String expectedGraduation;
+        private String enrollmentStatus; // full-time, part-time, exchange
+        private String academicStanding; // good, probation, honors
+        
+        // Lecturer-specific fields
+        private String employeeId;
+        private String office;
+        private String title; // Dr., Prof., Mr., Ms., Mrs.
+        private String position; // Professor, Associate Professor, etc.
+        private String qualification;
+        private String experience;
+        private String employmentType; // full-time, part-time, visiting, adjunct
+        private String status; // active, sabbatical, emeritus
+        private String officeAddress;
+        private String officeHours;
+        private String campus;
+        private String building;
+        private String room;
+        
+        // Additional profile fields
+        @Builder.Default
+        private LocalDateTime updatedAt = LocalDateTime.now();
     }
 
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public UserRole getRole() {
-        return role;
-    }
-
-    public void setRole(UserRole role) {
-        this.role = role;
-    }
-
-    public UserProfile getProfile() {
-        return profile;
-    }
-
-    public void setProfile(UserProfile profile) {
-        this.profile = profile;
-    }
-
-    // Boolean field with both naming conventions
+    // Helper methods
     public boolean isActive() {
-        return isActive;
-    }
-
-    public boolean getIsActive() {
         return isActive;
     }
 
@@ -97,141 +113,50 @@ public class User {
         this.isActive = isActive;
     }
 
-    public void setActive(boolean active) {
-        this.isActive = active;
+    public String getFullName() {
+        if (profile != null && profile.getFirstName() != null && profile.getLastName() != null) {
+            return profile.getFirstName() + " " + profile.getLastName();
+        }
+        return email;
     }
 
-    public LocalDateTime getLastLogin() {
-        return lastLogin;
+    public String getInitials() {
+        if (profile != null && profile.getFirstName() != null && profile.getLastName() != null) {
+            return profile.getFirstName().substring(0, 1).toUpperCase() + 
+                   profile.getLastName().substring(0, 1).toUpperCase();
+        }
+        return email.substring(0, 2).toUpperCase();
     }
 
-    public void setLastLogin(LocalDateTime lastLogin) {
-        this.lastLogin = lastLogin;
+    public String getAvatarUrl() {
+        if (profile != null && profile.getAvatar() != null && !profile.getAvatar().isEmpty()) {
+            return "/api/files/" + profile.getAvatar();
+        }
+        return null;
     }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
+    public boolean hasAvatar() {
+        return profile != null && profile.getAvatar() != null && !profile.getAvatar().isEmpty();
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
+    // Student-specific helper methods
+    public boolean isStudent() {
+        return role == UserRole.STUDENT;
     }
 
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
+    public boolean isLecturer() {
+        return role == UserRole.LECTURER;
     }
 
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
+    public boolean isAdmin() {
+        return role == UserRole.ADMIN;
     }
 
-    // Nested classes for embedded documents
-    public static class UserProfile {
-        private String firstName;
-        private String lastName;
-        private String avatar;
-        private String department;
-        private String studentId;  // For students
-        private String employeeId; // For lecturers
-        private String phone;
-        private String office;     // For lecturers
-        private String year;       // For students (Freshman, Sophomore, etc.)
-        private String major;      // For students
-
-        // Default constructor
-        public UserProfile() {}
-
-        // Constructor with essential fields
-        public UserProfile(String firstName, String lastName, String department) {
-            this.firstName = firstName;
-            this.lastName = lastName;
-            this.department = department;
+    // Update timestamp method
+    public void updateTimestamp() {
+        this.updatedAt = LocalDateTime.now();
+        if (this.profile != null) {
+            this.profile.setUpdatedAt(LocalDateTime.now());
         }
-
-        // Getters and Setters
-        public String getFirstName() {
-            return firstName;
-        }
-
-        public void setFirstName(String firstName) {
-            this.firstName = firstName;
-        }
-
-        public String getLastName() {
-            return lastName;
-        }
-
-        public void setLastName(String lastName) {
-            this.lastName = lastName;
-        }
-
-        public String getAvatar() {
-            return avatar;
-        }
-
-        public void setAvatar(String avatar) {
-            this.avatar = avatar;
-        }
-
-        public String getDepartment() {
-            return department;
-        }
-
-        public void setDepartment(String department) {
-            this.department = department;
-        }
-
-        public String getStudentId() {
-            return studentId;
-        }
-
-        public void setStudentId(String studentId) {
-            this.studentId = studentId;
-        }
-
-        public String getEmployeeId() {
-            return employeeId;
-        }
-
-        public void setEmployeeId(String employeeId) {
-            this.employeeId = employeeId;
-        }
-
-        public String getPhone() {
-            return phone;
-        }
-
-        public void setPhone(String phone) {
-            this.phone = phone;
-        }
-
-        public String getOffice() {
-            return office;
-        }
-
-        public void setOffice(String office) {
-            this.office = office;
-        }
-
-        public String getYear() {
-            return year;
-        }
-
-        public void setYear(String year) {
-            this.year = year;
-        }
-
-        public String getMajor() {
-            return major;
-        }
-
-        public void setMajor(String major) {
-            this.major = major;
-        }
-    }
-    
-    // Enum for user roles
-    public enum UserRole {
-        STUDENT, LECTURER, ADMIN
     }
 }
