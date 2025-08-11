@@ -64,6 +64,24 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/logout").authenticated()
                 .requestMatchers("/api/auth/status").authenticated()
                 
+                // =================== APPOINTMENT ENDPOINTS - ADDED ===================
+                // All appointment endpoints require authentication
+                .requestMatchers("/api/appointments/**").authenticated()
+                
+                // Specific appointment endpoint permissions
+                .requestMatchers(HttpMethod.GET, "/api/appointments").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/appointments/{appointmentId}").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/appointments/stats").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/appointments/available-slots").hasRole("STUDENT")
+                
+                .requestMatchers(HttpMethod.POST, "/api/appointments").authenticated()
+                
+                .requestMatchers(HttpMethod.PUT, "/api/appointments/{appointmentId}").authenticated()
+                .requestMatchers(HttpMethod.PUT, "/api/appointments/{appointmentId}/status").authenticated()
+                
+                .requestMatchers(HttpMethod.DELETE, "/api/appointments/{appointmentId}").authenticated()
+                // =================== END APPOINTMENT ENDPOINTS ===================
+                
                 // Query endpoints - require authentication
                 .requestMatchers("/api/queries/**").authenticated()
                 
