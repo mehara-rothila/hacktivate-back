@@ -73,20 +73,42 @@ public interface AppointmentRepository extends MongoRepository<Appointment, Stri
     List<Appointment> findByCourseIdOrderByScheduledAtDesc(String courseId);
 
     /**
-     * Find conflicting appointments for a lecturer in a time range
+     * FIXED: Find conflicting appointments for a lecturer in a time range
+     * Using simple Spring Data method instead of complex query
      */
-    @Query("{ 'lecturerId': ?0, 'status': { $in: ['PENDING', 'CONFIRMED'] }, $or: [ " +
-           "{ 'scheduledAt': { $lt: ?2 }, $expr: { $gt: [ { $add: ['$scheduledAt', { $multiply: ['$durationMinutes', 60000] }] }, ?1 ] } }, " +
-           "{ 'scheduledAt': { $gte: ?1, $lt: ?2 } } ] }")
-    List<Appointment> findConflictingAppointmentsForLecturer(String lecturerId, LocalDateTime startTime, LocalDateTime endTime);
+    default List<Appointment> findConflictingAppointmentsForLecturer(String lecturerId, LocalDateTime startTime, LocalDateTime endTime) {
+        List<Appointment> lecturerAppointments = findByLecturerIdOrderByScheduledAtDesc(lecturerId);
+        
+        return lecturerAppointments.stream()
+            .filter(apt -> apt.getStatus() == Appointment.AppointmentStatus.PENDING || 
+                          apt.getStatus() == Appointment.AppointmentStatus.CONFIRMED)
+            .filter(apt -> {
+                LocalDateTime aptStart = apt.getScheduledAt();
+                LocalDateTime aptEnd = apt.getScheduledAt().plusMinutes(apt.getDurationMinutes());
+                // Check if appointments overlap
+                return (startTime.isBefore(aptEnd) && endTime.isAfter(aptStart));
+            })
+            .toList();
+    }
 
     /**
-     * Find conflicting appointments for a student in a time range
+     * FIXED: Find conflicting appointments for a student in a time range
+     * Using simple Spring Data method instead of complex query
      */
-    @Query("{ 'studentId': ?0, 'status': { $in: ['PENDING', 'CONFIRMED'] }, $or: [ " +
-           "{ 'scheduledAt': { $lt: ?2 }, $expr: { $gt: [ { $add: ['$scheduledAt', { $multiply: ['$durationMinutes', 60000] }] }, ?1 ] } }, " +
-           "{ 'scheduledAt': { $gte: ?1, $lt: ?2 } } ] }")
-    List<Appointment> findConflictingAppointmentsForStudent(String studentId, LocalDateTime startTime, LocalDateTime endTime);
+    default List<Appointment> findConflictingAppointmentsForStudent(String studentId, LocalDateTime startTime, LocalDateTime endTime) {
+        List<Appointment> studentAppointments = findByStudentIdOrderByScheduledAtDesc(studentId);
+        
+        return studentAppointments.stream()
+            .filter(apt -> apt.getStatus() == Appointment.AppointmentStatus.PENDING || 
+                          apt.getStatus() == Appointment.AppointmentStatus.CONFIRMED)
+            .filter(apt -> {
+                LocalDateTime aptStart = apt.getScheduledAt();
+                LocalDateTime aptEnd = apt.getScheduledAt().plusMinutes(apt.getDurationMinutes());
+                // Check if appointments overlap
+                return (startTime.isBefore(aptEnd) && endTime.isAfter(aptStart));
+            })
+            .toList();
+    }
 
     /**
      * Count pending appointments for a lecturer
@@ -115,13 +137,23 @@ public interface AppointmentRepository extends MongoRepository<Appointment, Stri
     List<Appointment> findAppointmentsPendingCompletion(LocalDateTime currentTime);
 
     /**
-     * Find appointments by multiple filters
+     * FIXED: Find appointments by multiple filters using simpler approach
      */
-    @Query("{ $and: [ " +
-           "{ $or: [ { 'studentId': ?0 }, { 'lecturerId': ?0 } ] }, " +
-           "{ $or: [ { 'status': ?1 }, ?1 == null ] }, " +
-           "{ $or: [ { 'type': ?2 }, ?2 == null ] }, " +
-           "{ $or: [ { 'courseId': ?3 }, ?3 == null ] } ] }")
-    List<Appointment> findAppointmentsByFilters(String userId, Appointment.AppointmentStatus status, 
-                                               Appointment.AppointmentType type, String courseId);
+    default List<Appointment> findAppointmentsByFilters(String userId, Appointment.AppointmentStatus status, 
+                                                       Appointment.AppointmentType type, String courseId) {
+        // Get all appointments for user first
+        List<Appointment> appointments = findByUserIdOrderByScheduledAtDesc(userId);
+        
+        return appointments.stream()
+            .filter(apt -> status == null || apt.getStatus() == status)
+            .filter(apt -> type == null || apt.getType() == type)
+            .filter(apt -> courseId == null || (apt.getCourseId() != null && apt.getCourseId().equals(courseId)))
+            .toList();
+    }
+    
+    /**
+     * Helper method to find all appointments for a user (student or lecturer)
+     */
+    @Query("{ $or: [ { 'studentId': ?0 }, { 'lecturerId': ?0 } ] }")
+    List<Appointment> findByUserIdOrderByScheduledAtDesc(String userId);
 }
