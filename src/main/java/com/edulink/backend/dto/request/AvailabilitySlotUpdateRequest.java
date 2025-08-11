@@ -1,10 +1,9 @@
-// src/main/java/com/edulink/backend/dto/request/AvailabilitySlotRequest.java
+
+// src/main/java/com/edulink/backend/dto/request/AvailabilitySlotUpdateRequest.java
 package com.edulink.backend.dto.request;
 
 import com.edulink.backend.model.entity.Appointment;
 import com.edulink.backend.model.entity.LecturerAvailability;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,33 +16,18 @@ import java.time.LocalTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AvailabilitySlotRequest {
+public class AvailabilitySlotUpdateRequest {
     
-    // For specific date slots
     private LocalDate date;
-    
-    // For recurring slots
     private LecturerAvailability.DayOfWeek dayOfWeek;
-    private boolean isRecurring;
-    private LocalDate recurringStartDate;
-    private LocalDate recurringEndDate;
-    
-    @NotNull(message = "Start time is required")
     private LocalTime startTime;
-    
-    @NotNull(message = "End time is required") 
     private LocalTime endTime;
-    
-    @Positive(message = "Slot duration must be positive")
     private Integer slotDurationMinutes;
-    
-    @NotNull(message = "Location is required")
     private String location;
-    
     private Appointment.AppointmentType allowedType;
     private LecturerAvailability.AvailabilityType type;
     private String description;
-    
-    @Builder.Default
-    private boolean isActive = true;
+    private Boolean isActive;
+    private LocalDate recurringStartDate;
+    private LocalDate recurringEndDate;
 }

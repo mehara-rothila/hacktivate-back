@@ -45,7 +45,7 @@ public class AvailabilityController {
                     .success(true)
                     .message("Availability slot created successfully")
                     .data(response)
-                    .timestamp(LocalDateTime.now().toString())
+                    .timestamp(LocalDateTime.now())
                     .build(),
                 HttpStatus.CREATED
             );
@@ -55,7 +55,7 @@ public class AvailabilityController {
                 ApiResponse.<AvailabilitySlotResponse>builder()
                     .success(false)
                     .message("Failed to create availability slot: " + e.getMessage())
-                    .timestamp(LocalDateTime.now().toString())
+                    .timestamp(LocalDateTime.now())
                     .build()
             );
         }
@@ -80,7 +80,7 @@ public class AvailabilityController {
                         ApiResponse.<List<AvailabilitySlotResponse>>builder()
                             .success(false)
                             .message("Invalid availability type: " + type)
-                            .timestamp(LocalDateTime.now().toString())
+                            .timestamp(LocalDateTime.now())
                             .build()
                     );
                 }
@@ -94,7 +94,7 @@ public class AvailabilityController {
                     .success(true)
                     .message("Availability slots retrieved successfully")
                     .data(slots)
-                    .timestamp(LocalDateTime.now().toString())
+                    .timestamp(LocalDateTime.now())
                     .build()
             );
             
@@ -104,7 +104,7 @@ public class AvailabilityController {
                 ApiResponse.<List<AvailabilitySlotResponse>>builder()
                     .success(false)
                     .message("Failed to retrieve availability slots: " + e.getMessage())
-                    .timestamp(LocalDateTime.now().toString())
+                    .timestamp(LocalDateTime.now())
                     .build()
             );
         }
@@ -128,7 +128,7 @@ public class AvailabilityController {
                     .success(true)
                     .message("Generated time slots retrieved successfully")
                     .data(timeSlots)
-                    .timestamp(LocalDateTime.now().toString())
+                    .timestamp(LocalDateTime.now())
                     .build()
             );
             
@@ -138,7 +138,7 @@ public class AvailabilityController {
                 ApiResponse.<List<GeneratedTimeSlotResponse>>builder()
                     .success(false)
                     .message("Failed to retrieve generated time slots: " + e.getMessage())
-                    .timestamp(LocalDateTime.now().toString())
+                    .timestamp(LocalDateTime.now())
                     .build()
             );
         }
@@ -160,7 +160,7 @@ public class AvailabilityController {
                     .success(true)
                     .message("Availability slot updated successfully")
                     .data(response)
-                    .timestamp(LocalDateTime.now().toString())
+                    .timestamp(LocalDateTime.now())
                     .build()
             );
         } catch (Exception e) {
@@ -169,7 +169,7 @@ public class AvailabilityController {
                 ApiResponse.<AvailabilitySlotResponse>builder()
                     .success(false)
                     .message("Failed to update availability slot: " + e.getMessage())
-                    .timestamp(LocalDateTime.now().toString())
+                    .timestamp(LocalDateTime.now())
                     .build()
             );
         }
@@ -188,7 +188,7 @@ public class AvailabilityController {
                     .success(true)
                     .message("Availability slot status updated successfully")
                     .data(response)
-                    .timestamp(LocalDateTime.now().toString())
+                    .timestamp(LocalDateTime.now())
                     .build()
             );
         } catch (Exception e) {
@@ -197,7 +197,7 @@ public class AvailabilityController {
                 ApiResponse.<AvailabilitySlotResponse>builder()
                     .success(false)
                     .message("Failed to toggle availability slot: " + e.getMessage())
-                    .timestamp(LocalDateTime.now().toString())
+                    .timestamp(LocalDateTime.now())
                     .build()
             );
         }
@@ -215,7 +215,7 @@ public class AvailabilityController {
                 ApiResponse.<Void>builder()
                     .success(true)
                     .message("Availability slot deleted successfully")
-                    .timestamp(LocalDateTime.now().toString())
+                    .timestamp(LocalDateTime.now())
                     .build()
             );
         } catch (Exception e) {
@@ -224,7 +224,7 @@ public class AvailabilityController {
                 ApiResponse.<Void>builder()
                     .success(false)
                     .message("Failed to delete availability slot: " + e.getMessage())
-                    .timestamp(LocalDateTime.now().toString())
+                    .timestamp(LocalDateTime.now())
                     .build()
             );
         }
@@ -243,7 +243,7 @@ public class AvailabilityController {
                     .success(true)
                     .message("Availability statistics retrieved successfully")
                     .data(stats)
-                    .timestamp(LocalDateTime.now().toString())
+                    .timestamp(LocalDateTime.now())
                     .build()
             );
         } catch (Exception e) {
@@ -252,7 +252,7 @@ public class AvailabilityController {
                 ApiResponse.builder()
                     .success(false)
                     .message("Failed to retrieve availability statistics: " + e.getMessage())
-                    .timestamp(LocalDateTime.now().toString())
+                    .timestamp(LocalDateTime.now())
                     .build()
             );
         }
@@ -274,7 +274,7 @@ public class AvailabilityController {
                     .success(true)
                     .message(responses.size() + " availability slots created successfully")
                     .data(responses)
-                    .timestamp(LocalDateTime.now().toString())
+                    .timestamp(LocalDateTime.now())
                     .build()
             );
         } catch (Exception e) {
@@ -283,7 +283,7 @@ public class AvailabilityController {
                 ApiResponse.<List<AvailabilitySlotResponse>>builder()
                     .success(false)
                     .message("Failed to create bulk availability slots: " + e.getMessage())
-                    .timestamp(LocalDateTime.now().toString())
+                    .timestamp(LocalDateTime.now())
                     .build()
             );
         }
@@ -300,7 +300,7 @@ public class AvailabilityController {
                 ApiResponse.<Void>builder()
                     .success(true)
                     .message(slotIds.size() + " availability slots deleted successfully")
-                    .timestamp(LocalDateTime.now().toString())
+                    .timestamp(LocalDateTime.now())
                     .build()
             );
         } catch (Exception e) {
@@ -309,7 +309,7 @@ public class AvailabilityController {
                 ApiResponse.<Void>builder()
                     .success(false)
                     .message("Failed to delete bulk availability slots: " + e.getMessage())
-                    .timestamp(LocalDateTime.now().toString())
+                    .timestamp(LocalDateTime.now())
                     .build()
             );
         }
