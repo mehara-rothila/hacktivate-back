@@ -11,9 +11,11 @@ import com.edulink.backend.dto.response.UserProfileResponse;
 import com.edulink.backend.model.entity.Appointment;
 import com.edulink.backend.model.entity.Course;
 import com.edulink.backend.model.entity.User;
+import com.edulink.backend.model.entity.LecturerAvailability;
 import com.edulink.backend.repository.AppointmentRepository;
 import com.edulink.backend.repository.CourseRepository;
 import com.edulink.backend.repository.UserRepository;
+import com.edulink.backend.repository.LecturerAvailabilityRepository;
 import com.edulink.backend.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +30,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/api/appointments")
@@ -39,6 +42,8 @@ public class AppointmentController {
     private final UserRepository userRepository;
     private final CourseRepository courseRepository;
     private final UserService userService;
+    // ✅ ADD THIS: Inject LecturerAvailabilityRepository
+    private final LecturerAvailabilityRepository lecturerAvailabilityRepository;
 
     // =================== CREATE APPOINTMENT ===================
     @PostMapping
@@ -388,13 +393,15 @@ public class AppointmentController {
         );
     }
 
-    // =================== GET AVAILABLE TIME SLOTS ===================
+    // =================== 🔥 FIXED: GET AVAILABLE TIME SLOTS ===================
     @GetMapping("/available-slots")
     @PreAuthorize("hasRole('STUDENT')")
     public ResponseEntity<ApiResponse<List<TimeSlotResponse>>> getAvailableTimeSlots(
             @RequestParam String lecturerId,
             @RequestParam String date, // Format: YYYY-MM-DD
             @RequestParam(defaultValue = "30") Integer durationMinutes) {
+        
+        log.info("Getting available slots for lecturer: {} on date: {} with duration: {}", lecturerId, date, durationMinutes);
         
         // Validate lecturer exists
         User lecturer = userRepository.findById(lecturerId)
@@ -405,21 +412,12 @@ public class AppointmentController {
         }
 
         LocalDate requestedDate = LocalDate.parse(date);
-        LocalDateTime startOfDay = requestedDate.atStartOfDay();
-        LocalDateTime endOfDay = requestedDate.atTime(23, 59, 59);
+        
+        // ✅ FIXED: Use real availability data instead of hardcoded times
+        List<TimeSlotResponse> availableSlots = generateRealAvailableTimeSlots(
+                lecturer, lecturerId, requestedDate, durationMinutes);
 
-        // Get lecturer's existing appointments for the day
-        List<Appointment> existingAppointments = appointmentRepository.findByUserIdAndScheduledAtBetween(
-                lecturerId, startOfDay, endOfDay)
-                .stream()
-                .filter(apt -> apt.getStatus() == Appointment.AppointmentStatus.CONFIRMED || 
-                              apt.getStatus() == Appointment.AppointmentStatus.PENDING)
-                .collect(Collectors.toList());
-
-        // Generate available time slots (this is a simplified version)
-        // In a real implementation, you'd want to store lecturer's availability preferences
-        List<TimeSlotResponse> availableSlots = generateAvailableTimeSlots(
-                lecturer, requestedDate, existingAppointments, durationMinutes);
+        log.info("Generated {} available time slots for lecturer {} on {}", availableSlots.size(), lecturerId, date);
 
         return ResponseEntity.ok(
                 ApiResponse.<List<TimeSlotResponse>>builder()
@@ -523,8 +521,6 @@ public class AppointmentController {
 
     private void createRecurringInstances(Appointment parentAppointment, AppointmentRequest request) {
         // Implementation for creating recurring appointment instances
-        // This would create individual appointment records for each occurrence
-        // Simplified version - you'd want to make this more robust
         LocalDateTime current = parentAppointment.getScheduledAt();
         LocalDateTime endDate = request.getRecurringEndDate();
         
@@ -551,7 +547,7 @@ public class AppointmentController {
                         .courseId(parentAppointment.getCourseId())
                         .meetingLink(parentAppointment.getMeetingLink())
                         .meetingPassword(parentAppointment.getMeetingPassword())
-                        .isRecurring(false) // Individual instances are not recurring
+                        .isRecurring(false)
                         .parentAppointmentId(parentAppointment.getId())
                         .bookedAt(LocalDateTime.now())
                         .lastModifiedAt(LocalDateTime.now())
@@ -563,48 +559,118 @@ public class AppointmentController {
         }
     }
 
-    private List<TimeSlotResponse> generateAvailableTimeSlots(User lecturer, LocalDate date, 
-                                                            List<Appointment> existingAppointments, 
-                                                            Integer durationMinutes) {
-        // Simplified implementation - generate time slots from 9 AM to 5 PM
-        // In a real application, you'd want to store lecturer's availability preferences
-        List<TimeSlotResponse> slots = new java.util.ArrayList<>();
+    // =================== 🔥 NEW: REAL AVAILABILITY TIME SLOT GENERATION ===================
+    private List<TimeSlotResponse> generateRealAvailableTimeSlots(User lecturer, String lecturerId, 
+                                                                LocalDate date, Integer durationMinutes) {
+        log.info("Generating real available time slots for lecturer: {} on date: {}", lecturerId, date);
         
-        LocalTime startTime = LocalTime.of(9, 0);
-        LocalTime endTime = LocalTime.of(17, 0);
+        List<TimeSlotResponse> availableSlots = new ArrayList<>();
         
-        LocalTime current = startTime;
-        while (current.plusMinutes(durationMinutes).isBefore(endTime) || 
-               current.plusMinutes(durationMinutes).equals(endTime)) {
-            
-            LocalDateTime slotStart = date.atTime(current);
-            LocalDateTime slotEnd = slotStart.plusMinutes(durationMinutes);
-            
-            // Check if this slot conflicts with existing appointments
-            boolean isAvailable = existingAppointments.stream()
-                    .noneMatch(apt -> {
-                        LocalDateTime aptStart = apt.getScheduledAt();
-                        LocalDateTime aptEnd = apt.getEndTime();
-                        return (slotStart.isBefore(aptEnd) && slotEnd.isAfter(aptStart));
-                    });
-            
-            if (isAvailable) {
-                slots.add(TimeSlotResponse.builder()
-                        .id(date + "-" + current.toString())
-                        .startTime(slotStart)
-                        .endTime(slotEnd)
-                        .durationMinutes(durationMinutes)
-                        .location("Office") // Default location
-                        .type(Appointment.AppointmentType.OFFICE_HOURS)
-                        .isAvailable(true)
-                        .isRecurring(false)
-                        .lecturer(UserService.mapToUserProfileResponse(lecturer))
-                        .build());
-            }
-            
-            current = current.plusMinutes(30); // 30-minute intervals
+        // ✅ Step 1: Get lecturer's availability for this date
+        String dayOfWeek = date.getDayOfWeek().name(); // Convert to "MONDAY", "TUESDAY", etc.
+        
+        // Query for both specific date availability and recurring availability
+        List<LecturerAvailability> availabilitySlots = lecturerAvailabilityRepository.findByLecturerIdAndDate(
+                lecturerId, date, dayOfWeek);
+        
+        log.info("Found {} availability slots for lecturer {} on {}", availabilitySlots.size(), lecturerId, date);
+        
+        if (availabilitySlots.isEmpty()) {
+            log.info("No availability slots found for lecturer {} on {}", lecturerId, date);
+            return availableSlots; // Return empty list
         }
         
-        return slots;
+        // ✅ Step 2: Get existing appointments for this date
+        LocalDateTime startOfDay = date.atStartOfDay();
+        LocalDateTime endOfDay = date.atTime(23, 59, 59);
+        
+        List<Appointment> existingAppointments = appointmentRepository.findByUserIdAndScheduledAtBetween(
+                lecturerId, startOfDay, endOfDay)
+                .stream()
+                .filter(apt -> apt.getStatus() == Appointment.AppointmentStatus.CONFIRMED || 
+                              apt.getStatus() == Appointment.AppointmentStatus.PENDING)
+                .collect(Collectors.toList());
+        
+        log.info("Found {} existing appointments for lecturer {} on {}", existingAppointments.size(), lecturerId, date);
+        
+        // ✅ Step 3: Generate time slots from availability data
+        for (LecturerAvailability availability : availabilitySlots) {
+            // Only process active availability slots
+            if (!availability.isActive()) {
+                log.debug("Skipping inactive availability slot: {}", availability.getId());
+                continue;
+            }
+            
+            // Check if this availability is valid for the requested date
+            if (!availability.isActiveOn(date)) {
+                log.debug("Availability slot {} is not active on date {}", availability.getId(), date);
+                continue;
+            }
+            
+            // Generate time slots from this availability
+            LocalTime current = availability.getStartTime();
+            LocalTime endTime = availability.getEndTime();
+            Integer slotDuration = availability.getSlotDurationMinutes();
+            
+            // Use the slot's configured duration or the requested duration, whichever is smaller
+            int actualDuration = (slotDuration != null && slotDuration > 0) ? slotDuration : durationMinutes;
+            
+            log.debug("Generating slots from {} to {} with {} minute intervals", current, endTime, actualDuration);
+            
+            while (current.plusMinutes(actualDuration).isBefore(endTime) || 
+                   current.plusMinutes(actualDuration).equals(endTime)) {
+                
+                LocalDateTime slotStart = date.atTime(current);
+                LocalDateTime slotEnd = slotStart.plusMinutes(actualDuration);
+                
+                // ✅ Step 4: Check if this slot conflicts with existing appointments
+                boolean isAvailable = existingAppointments.stream()
+                        .noneMatch(apt -> {
+                            LocalDateTime aptStart = apt.getScheduledAt();
+                            LocalDateTime aptEnd = apt.getEndTime();
+                            // Check for overlap: slot overlaps with appointment if slot starts before apt ends AND slot ends after apt starts
+                            return (slotStart.isBefore(aptEnd) && slotEnd.isAfter(aptStart));
+                        });
+                
+                if (isAvailable) {
+                    // ✅ Create available time slot
+                    TimeSlotResponse slot = TimeSlotResponse.builder()
+                            .id(availability.getId() + "-" + current.toString())
+                            .startTime(slotStart)
+                            .endTime(slotEnd)
+                            .durationMinutes(actualDuration)
+                            .location(availability.getLocation() != null ? availability.getLocation() : "Office")
+                            .type(mapAvailabilityTypeToAppointmentType(availability.getAllowedType()))
+                            .isAvailable(true)
+                            .isRecurring(availability.isRecurring())
+                            .recurringPattern(availability.isRecurring() ? 
+                                (availability.getDayOfWeek() != null ? 
+                                    Appointment.RecurringPattern.WEEKLY : null) : null)
+                            .lecturer(UserService.mapToUserProfileResponse(lecturer))
+                            .build();
+                    
+                    availableSlots.add(slot);
+                    
+                    log.debug("Added available slot: {} - {}", slotStart, slotEnd);
+                } else {
+                    log.debug("Slot {} - {} is not available (conflicts with existing appointment)", slotStart, slotEnd);
+                }
+                
+                // Move to next slot
+                current = current.plusMinutes(actualDuration);
+            }
+        }
+        
+        log.info("Generated {} available time slots from {} availability configurations", 
+                availableSlots.size(), availabilitySlots.size());
+        
+        return availableSlots;
+    }
+    
+    // ✅ Helper method to map AvailabilityType to AppointmentType
+    private Appointment.AppointmentType mapAvailabilityTypeToAppointmentType(Appointment.AppointmentType allowedType) {
+        // If the availability slot specifies what type of appointments it allows, use that
+        // Otherwise default to OFFICE_HOURS
+        return allowedType != null ? allowedType : Appointment.AppointmentType.OFFICE_HOURS;
     }
 }
