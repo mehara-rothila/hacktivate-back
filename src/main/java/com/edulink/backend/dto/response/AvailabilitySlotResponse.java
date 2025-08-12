@@ -1,9 +1,9 @@
-
 // src/main/java/com/edulink/backend/dto/response/AvailabilitySlotResponse.java
 package com.edulink.backend.dto.response;
 
 import com.edulink.backend.model.entity.Appointment;
 import com.edulink.backend.model.entity.LecturerAvailability;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -35,9 +35,13 @@ public class AvailabilitySlotResponse {
     private LecturerAvailability.AvailabilityType type;
     private String description;
     
-    // Settings
+    // Settings - FIXED: Force correct JSON field names
+    @JsonProperty("isActive")
     private boolean isActive;
+    
+    @JsonProperty("isRecurring")
     private boolean isRecurring;
+    
     private LocalDate recurringStartDate;
     private LocalDate recurringEndDate;
     
