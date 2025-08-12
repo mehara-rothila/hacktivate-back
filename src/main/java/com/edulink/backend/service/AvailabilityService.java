@@ -36,6 +36,7 @@ public class AvailabilityService {
     // =================== CREATE AVAILABILITY SLOT ===================
     public AvailabilitySlotResponse createAvailabilitySlot(AvailabilitySlotRequest request, String lecturerId) {
         log.info("Creating availability slot for lecturer: {}", lecturerId);
+        log.debug("Request details: {}", request);
 
         // Validate lecturer exists
         User lecturer = validateLecturer(lecturerId);
@@ -49,7 +50,9 @@ public class AvailabilityService {
         // Save to database
         LecturerAvailability savedAvailability = availabilityRepository.save(availability);
         
-        log.info("Availability slot created successfully with ID: {}", savedAvailability.getId());
+        log.info("Availability slot created successfully with ID: {}, isActive: {}", 
+                savedAvailability.getId(), savedAvailability.isActive());
+        
         return mapToAvailabilitySlotResponse(savedAvailability);
     }
 
@@ -75,9 +78,12 @@ public class AvailabilityService {
             }
         }
 
-        return availabilitySlots.stream()
+        List<AvailabilitySlotResponse> responses = availabilitySlots.stream()
             .map(this::mapToAvailabilitySlotResponse)
             .collect(Collectors.toList());
+
+        log.info("Found {} availability slots for lecturer {}", responses.size(), lecturerId);
+        return responses;
     }
 
     // =================== GET GENERATED TIME SLOTS FOR DATE ===================
@@ -172,12 +178,12 @@ public class AvailabilityService {
         // Update fields
         if (request.getDate() != null) {
             availability.setDate(request.getDate());
-            availability.setRecurring(false); // FIXED: was setIsRecurring(false)
+            availability.setRecurring(false);
         }
         
         if (request.getDayOfWeek() != null) {
             availability.setDayOfWeek(request.getDayOfWeek());
-            availability.setRecurring(true); // FIXED: was setIsRecurring(true)
+            availability.setRecurring(true);
         }
         
         if (request.getStartTime() != null) {
@@ -209,7 +215,8 @@ public class AvailabilityService {
         }
         
         if (request.getIsActive() != null) {
-            availability.setActive(request.getIsActive()); // FIXED: was setIsActive(request.getIsActive())
+            log.info("Updating isActive from {} to {}", availability.isActive(), request.getIsActive());
+            availability.setActive(request.getIsActive());
         }
         
         if (request.getRecurringStartDate() != null) {
@@ -223,7 +230,8 @@ public class AvailabilityService {
         availability.updateTimestamp();
         LecturerAvailability updatedAvailability = availabilityRepository.save(availability);
 
-        log.info("Availability slot {} updated successfully", slotId);
+        log.info("Availability slot {} updated successfully. Final isActive: {}", 
+                slotId, updatedAvailability.isActive());
         return mapToAvailabilitySlotResponse(updatedAvailability);
     }
 
@@ -232,13 +240,26 @@ public class AvailabilityService {
         log.info("Toggling availability slot {} by lecturer: {}", slotId, lecturerId);
 
         LecturerAvailability availability = getAvailabilitySlotById(slotId, lecturerId);
-        availability.setActive(!availability.isActive()); // FIXED: was setIsActive(!availability.isActive())
+        
+        // FIXED: Use correct method names for isActive field
+        boolean currentStatus = availability.isActive();
+        boolean newStatus = !currentStatus;
+        
+        log.info("Changing slot {} status from {} to {}", slotId, currentStatus, newStatus);
+        
+        availability.setActive(newStatus);
         availability.updateTimestamp();
 
         LecturerAvailability updatedAvailability = availabilityRepository.save(availability);
-        log.info("Availability slot {} toggled to {}", slotId, updatedAvailability.isActive() ? "active" : "inactive");
         
-        return mapToAvailabilitySlotResponse(updatedAvailability);
+        // Verify the save worked
+        boolean savedStatus = updatedAvailability.isActive();
+        log.info("Availability slot {} toggled successfully. New status: {}", slotId, savedStatus);
+        
+        AvailabilitySlotResponse response = mapToAvailabilitySlotResponse(updatedAvailability);
+        log.info("Response isActive: {}", response.isActive());
+        
+        return response;
     }
 
     // =================== DELETE AVAILABILITY SLOT ===================
@@ -379,6 +400,9 @@ public class AvailabilityService {
     }
 
     private LecturerAvailability buildAvailabilitySlot(AvailabilitySlotRequest request, String lecturerId) {
+        // Default to active=true for new availability slots
+        log.info("Building availability slot with isActive: true (default)");
+        
         return LecturerAvailability.builder()
                 .lecturerId(lecturerId)
                 .date(request.getDate())
@@ -390,7 +414,7 @@ public class AvailabilityService {
                 .allowedType(request.getAllowedType())
                 .type(request.getType() != null ? request.getType() : LecturerAvailability.AvailabilityType.OPEN)
                 .description(request.getDescription())
-                .isActive(request.isActive())
+                .isActive(true)  // Always create new slots as active
                 .isRecurring(request.isRecurring())
                 .recurringStartDate(request.getRecurringStartDate())
                 .recurringEndDate(request.getRecurringEndDate())
@@ -413,6 +437,9 @@ public class AvailabilityService {
         String displayName = generateDisplayName(availability);
         String timeRange = availability.getStartTime() + " - " + availability.getEndTime();
         Integer totalSlots = calculateTotalSlots(availability);
+        boolean isActiveStatus = availability.isActive();
+
+        log.debug("Mapping availability {} to response. isActive: {}", availability.getId(), isActiveStatus);
 
         return AvailabilitySlotResponse.builder()
                 .id(availability.getId())
@@ -426,7 +453,7 @@ public class AvailabilityService {
                 .allowedType(availability.getAllowedType())
                 .type(availability.getType())
                 .description(availability.getDescription())
-                .isActive(availability.isActive())
+                .isActive(isActiveStatus)
                 .isRecurring(availability.isRecurring())
                 .recurringStartDate(availability.getRecurringStartDate())
                 .recurringEndDate(availability.getRecurringEndDate())
