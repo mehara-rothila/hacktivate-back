@@ -1,4 +1,4 @@
-// File Path: src/main/java/com/edulink/backend/service/UserService.java
+// src/main/java/com/edulink/backend/service/UserService.java
 package com.edulink.backend.service;
 
 import com.edulink.backend.dto.request.RegisterRequest;
@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -201,6 +202,9 @@ public class UserService {
         return response;
     }
 
+    // ===================
+    // EXISTING METHODS
+    // ===================
     public Optional<User> findByEmail(String email) {
         return userRepository.findByEmail(email.toLowerCase().trim());
     }
@@ -244,48 +248,6 @@ public class UserService {
         if (profileUpdate.getBio() != null) {
             currentProfile.setBio(profileUpdate.getBio().trim());
         }
-        if (profileUpdate.getDateOfBirth() != null) {
-            currentProfile.setDateOfBirth(profileUpdate.getDateOfBirth());
-        }
-        if (profileUpdate.getGender() != null) {
-            currentProfile.setGender(profileUpdate.getGender());
-        }
-        if (profileUpdate.getAddress() != null) {
-            currentProfile.setAddress(profileUpdate.getAddress().trim());
-        }
-        if (profileUpdate.getCity() != null) {
-            currentProfile.setCity(profileUpdate.getCity().trim());
-        }
-        if (profileUpdate.getCountry() != null) {
-            currentProfile.setCountry(profileUpdate.getCountry().trim());
-        }
-        if (profileUpdate.getPostalCode() != null) {
-            currentProfile.setPostalCode(profileUpdate.getPostalCode().trim());
-        }
-        if (profileUpdate.getEmergencyContact() != null) {
-            currentProfile.setEmergencyContact(profileUpdate.getEmergencyContact().trim());
-        }
-        if (profileUpdate.getEmergencyPhone() != null) {
-            currentProfile.setEmergencyPhone(profileUpdate.getEmergencyPhone().trim());
-        }
-        if (profileUpdate.getLinkedIn() != null) {
-            currentProfile.setLinkedIn(profileUpdate.getLinkedIn().trim());
-        }
-        if (profileUpdate.getGithub() != null) {
-            currentProfile.setGithub(profileUpdate.getGithub().trim());
-        }
-        if (profileUpdate.getPortfolio() != null) {
-            currentProfile.setPortfolio(profileUpdate.getPortfolio().trim());
-        }
-        if (profileUpdate.getWebsite() != null) {
-            currentProfile.setWebsite(profileUpdate.getWebsite().trim());
-        }
-        if (profileUpdate.getResearchGate() != null) {
-            currentProfile.setResearchGate(profileUpdate.getResearchGate().trim());
-        }
-        if (profileUpdate.getOrcid() != null) {
-            currentProfile.setOrcid(profileUpdate.getOrcid().trim());
-        }
 
         // Student-specific updates
         if (user.getRole() == User.UserRole.STUDENT) {
@@ -300,18 +262,6 @@ public class UserService {
             }
             if (profileUpdate.getProgram() != null) {
                 currentProfile.setProgram(profileUpdate.getProgram().trim());
-            }
-            if (profileUpdate.getGpa() != null) {
-                currentProfile.setGpa(profileUpdate.getGpa());
-            }
-            if (profileUpdate.getExpectedGraduation() != null) {
-                currentProfile.setExpectedGraduation(profileUpdate.getExpectedGraduation());
-            }
-            if (profileUpdate.getEnrollmentStatus() != null) {
-                currentProfile.setEnrollmentStatus(profileUpdate.getEnrollmentStatus());
-            }
-            if (profileUpdate.getAcademicStanding() != null) {
-                currentProfile.setAcademicStanding(profileUpdate.getAcademicStanding());
             }
         }
 
@@ -332,26 +282,8 @@ public class UserService {
             if (profileUpdate.getExperience() != null) {
                 currentProfile.setExperience(profileUpdate.getExperience().trim());
             }
-            if (profileUpdate.getEmploymentType() != null) {
-                currentProfile.setEmploymentType(profileUpdate.getEmploymentType());
-            }
-            if (profileUpdate.getStatus() != null) {
-                currentProfile.setStatus(profileUpdate.getStatus());
-            }
-            if (profileUpdate.getOfficeAddress() != null) {
-                currentProfile.setOfficeAddress(profileUpdate.getOfficeAddress().trim());
-            }
             if (profileUpdate.getOfficeHours() != null) {
                 currentProfile.setOfficeHours(profileUpdate.getOfficeHours().trim());
-            }
-            if (profileUpdate.getCampus() != null) {
-                currentProfile.setCampus(profileUpdate.getCampus().trim());
-            }
-            if (profileUpdate.getBuilding() != null) {
-                currentProfile.setBuilding(profileUpdate.getBuilding().trim());
-            }
-            if (profileUpdate.getRoom() != null) {
-                currentProfile.setRoom(profileUpdate.getRoom().trim());
             }
         }
 
@@ -387,18 +319,131 @@ public class UserService {
         log.info("Successfully changed password for user: {}", user.getEmail());
     }
 
+    // ===================
+    // NEW METHODS FOR USER DIRECTORY
+    // ===================
+    
+    /**
+     * Get all students
+     */
     public List<User> getAllStudents() {
+        log.info("Getting all students");
         return userRepository.findByRole(User.UserRole.STUDENT);
     }
 
+    /**
+     * Get all lecturers
+     */
     public List<User> getAllLecturers() {
+        log.info("Getting all lecturers");
         return userRepository.findByRole(User.UserRole.LECTURER);
     }
 
+    /**
+     * Get all users
+     */
+    public List<User> findAllUsers() {
+        log.info("Getting all users");
+        return userRepository.findAll();
+    }
+
+    /**
+     * Find users by role
+     */
+    public List<User> findUsersByRole(User.UserRole role) {
+        log.info("Finding users by role: {}", role);
+        return userRepository.findByRole(role);
+    }
+
+    /**
+     * Find user by ID (returns null if not found)
+     */
+    public User findUserById(String userId) {
+        log.info("Finding user by ID: {}", userId);
+        return userRepository.findById(userId).orElse(null);
+    }
+
+    /**
+     * Get users by department
+     */
     public List<User> getUsersByDepartment(String department) {
+        log.info("Getting users by department: {}", department);
         return userRepository.findByDepartment(department);
     }
 
+    /**
+     * Find users by department and role
+     */
+    public List<User> findUsersByDepartmentAndRole(String department, User.UserRole role) {
+        log.info("Finding users by department: {} and role: {}", department, role);
+        return userRepository.findByRoleAndProfile_Department(role, department);
+    }
+
+    /**
+     * Search users by query string (name, email, department)
+     */
+    public List<User> searchUsers(String query) {
+        log.info("Searching users with query: {}", query);
+        
+        if (query == null || query.trim().isEmpty()) {
+            return userRepository.findAll();
+        }
+        
+        String lowercaseQuery = query.toLowerCase().trim();
+        
+        return userRepository.findAll().stream()
+                .filter(user -> 
+                    (user.getProfile() != null && (
+                        (user.getProfile().getFirstName() != null && user.getProfile().getFirstName().toLowerCase().contains(lowercaseQuery)) ||
+                        (user.getProfile().getLastName() != null && user.getProfile().getLastName().toLowerCase().contains(lowercaseQuery)) ||
+                        (user.getEmail() != null && user.getEmail().toLowerCase().contains(lowercaseQuery)) ||
+                        (user.getProfile().getDepartment() != null && user.getProfile().getDepartment().toLowerCase().contains(lowercaseQuery))
+                    ))
+                )
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Search users by query string and role
+     */
+    public List<User> searchUsersByRole(String query, User.UserRole role) {
+        log.info("Searching users with query: {} and role: {}", query, role);
+        return searchUsers(query).stream()
+                .filter(user -> user.getRole() == role)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Get all unique departments
+     */
+    public List<String> getAllDepartments() {
+        log.info("Getting all departments");
+        return userRepository.findAll().stream()
+                .filter(user -> user.getProfile() != null)
+                .map(user -> user.getProfile().getDepartment())
+                .filter(department -> department != null && !department.trim().isEmpty())
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Search lecturers by department
+     */
+    public List<User> searchLecturersByDepartment(String department) {
+        log.info("Searching lecturers by department: {}", department);
+        
+        if (department == null || department.trim().isEmpty()) {
+            return getAllLecturers();
+        }
+        
+        return userRepository.findByRoleAndProfile_Department(User.UserRole.LECTURER, department);
+    }
+
+    // ===================
+    // UTILITY METHODS
+    // ===================
+    
     public void deactivateUser(String userId) {
         log.info("Deactivating user with ID: {}", userId);
 
@@ -430,7 +475,7 @@ public class UserService {
     }
 
     public long getUserCountByRole(User.UserRole role) {
-        return userRepository.findByRole(role).size();
+        return userRepository.countByRole(role);
     }
 
     public long getTotalUserCount() {

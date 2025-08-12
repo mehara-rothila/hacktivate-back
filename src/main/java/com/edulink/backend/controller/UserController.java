@@ -3,7 +3,6 @@ package com.edulink.backend.controller;
 
 import com.edulink.backend.dto.response.ApiResponse;
 import com.edulink.backend.dto.response.UserProfileResponse;
-import com.edulink.backend.dto.response.LecturerResponse;
 import com.edulink.backend.model.entity.User;
 import com.edulink.backend.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -24,41 +23,48 @@ public class UserController {
 
     private final UserService userService;
 
-    // =================== GET ALL LECTURERS ===================
+    /**
+     * Get all lecturers (for student lecturer directory)
+     */
     @GetMapping("/lecturers")
-    public ResponseEntity<ApiResponse<List<LecturerResponse>>> getAllLecturers() {
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<List<UserProfileResponse>>> getAllLecturers() {
         try {
             log.info("Getting all lecturers");
             
             List<User> lecturers = userService.getAllLecturers();
-            List<LecturerResponse> lecturerResponses = lecturers.stream()
-                .filter(User::isActive) // Only active lecturers
-                .map(this::mapToLecturerResponse)
-                .collect(Collectors.toList());
-
+            
+            List<UserProfileResponse> lecturerResponses = lecturers.stream()
+                    .filter(User::isActive) // Only return active lecturers
+                    .map(UserService::mapToUserProfileResponse)
+                    .collect(Collectors.toList());
+            
             log.info("Found {} active lecturers", lecturerResponses.size());
-
+            
             return ResponseEntity.ok(
-                ApiResponse.<List<LecturerResponse>>builder()
+                ApiResponse.<List<UserProfileResponse>>builder()
                     .success(true)
                     .message("Lecturers retrieved successfully")
                     .data(lecturerResponses)
                     .timestamp(LocalDateTime.now())
                     .build()
             );
+            
         } catch (Exception e) {
-            log.error("Error getting lecturers", e);
-            return ResponseEntity.badRequest().body(
-                ApiResponse.<List<LecturerResponse>>builder()
-                    .success(false)
-                    .message("Failed to get lecturers: " + e.getMessage())
-                    .timestamp(LocalDateTime.now())
-                    .build()
-            );
+            log.error("Failed to get lecturers", e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.<List<UserProfileResponse>>builder()
+                        .success(false)
+                        .message("Failed to retrieve lecturers")
+                        .error(e.getMessage())
+                        .timestamp(LocalDateTime.now())
+                        .build());
         }
     }
 
-    // =================== GET ALL STUDENTS ===================
+    /**
+     * Get all students (for lecturer student directory)
+     */
     @GetMapping("/students")
     @PreAuthorize("hasRole('LECTURER')")
     public ResponseEntity<ApiResponse<List<UserProfileResponse>>> getAllStudents() {
@@ -66,13 +72,14 @@ public class UserController {
             log.info("Getting all students");
             
             List<User> students = userService.getAllStudents();
+            
             List<UserProfileResponse> studentResponses = students.stream()
-                .filter(User::isActive) // Only active students
-                .map(UserService::mapToUserProfileResponse)
-                .collect(Collectors.toList());
-
+                    .filter(User::isActive) // Only return active students
+                    .map(UserService::mapToUserProfileResponse)
+                    .collect(Collectors.toList());
+            
             log.info("Found {} active students", studentResponses.size());
-
+            
             return ResponseEntity.ok(
                 ApiResponse.<List<UserProfileResponse>>builder()
                     .success(true)
@@ -81,71 +88,90 @@ public class UserController {
                     .timestamp(LocalDateTime.now())
                     .build()
             );
+            
         } catch (Exception e) {
-            log.error("Error getting students", e);
-            return ResponseEntity.badRequest().body(
-                ApiResponse.<List<UserProfileResponse>>builder()
-                    .success(false)
-                    .message("Failed to get students: " + e.getMessage())
-                    .timestamp(LocalDateTime.now())
-                    .build()
-            );
+            log.error("Failed to get students", e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.<List<UserProfileResponse>>builder()
+                        .success(false)
+                        .message("Failed to retrieve students")
+                        .error(e.getMessage())
+                        .timestamp(LocalDateTime.now())
+                        .build());
         }
     }
 
-    // =================== GET LECTURER BY ID ===================
-    @GetMapping("/lecturers/{lecturerId}")
-    public ResponseEntity<ApiResponse<LecturerResponse>> getLecturerById(@PathVariable String lecturerId) {
+    /**
+     * Get user by ID
+     */
+    @GetMapping("/{userId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<UserProfileResponse>> getUserById(@PathVariable String userId) {
         try {
-            log.info("Getting lecturer by ID: {}", lecturerId);
+            log.info("Getting user by ID: {}", userId);
             
-            User lecturer = userService.findById(lecturerId)
-                .orElseThrow(() -> new RuntimeException("Lecturer not found: " + lecturerId));
-
-            if (lecturer.getRole() != User.UserRole.LECTURER) {
-                throw new RuntimeException("User is not a lecturer: " + lecturerId);
-            }
-
-            if (!lecturer.isActive()) {
-                throw new RuntimeException("Lecturer is not active: " + lecturerId);
-            }
-
-            LecturerResponse lecturerResponse = mapToLecturerResponse(lecturer);
-
+            User user = userService.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
+            
+            UserProfileResponse userResponse = UserService.mapToUserProfileResponse(user);
+            
             return ResponseEntity.ok(
-                ApiResponse.<LecturerResponse>builder()
+                ApiResponse.<UserProfileResponse>builder()
                     .success(true)
-                    .message("Lecturer retrieved successfully")
-                    .data(lecturerResponse)
+                    .message("User retrieved successfully")
+                    .data(userResponse)
                     .timestamp(LocalDateTime.now())
                     .build()
             );
+            
         } catch (Exception e) {
-            log.error("Error getting lecturer {}", lecturerId, e);
-            return ResponseEntity.badRequest().body(
-                ApiResponse.<LecturerResponse>builder()
-                    .success(false)
-                    .message("Failed to get lecturer: " + e.getMessage())
-                    .timestamp(LocalDateTime.now())
-                    .build()
-            );
+            log.error("Failed to get user by ID: {}", userId, e);
+            return ResponseEntity.status(404)
+                    .body(ApiResponse.<UserProfileResponse>builder()
+                        .success(false)
+                        .message("User not found")
+                        .error(e.getMessage())
+                        .timestamp(LocalDateTime.now())
+                        .build());
         }
     }
 
-    // =================== GET USERS BY DEPARTMENT ===================
-    @GetMapping("/department/{department}")
-    public ResponseEntity<ApiResponse<List<UserProfileResponse>>> getUsersByDepartment(@PathVariable String department) {
+    /**
+     * Get users by department
+     */
+    @GetMapping("/department")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<List<UserProfileResponse>>> getUsersByDepartment(
+            @RequestParam(name = "department") String department,
+            @RequestParam(name = "role", required = false) String role) {
         try {
-            log.info("Getting users by department: {}", department);
+            log.info("Getting users by department: '{}', role: {}", department, role);
             
-            List<User> users = userService.getUsersByDepartment(department);
+            List<User> users;
+            
+            if (role != null && !role.trim().isEmpty()) {
+                try {
+                    User.UserRole userRole = User.UserRole.valueOf(role.toUpperCase());
+                    users = userService.findUsersByDepartmentAndRole(department, userRole);
+                } catch (IllegalArgumentException e) {
+                    return ResponseEntity.status(400)
+                            .body(ApiResponse.<List<UserProfileResponse>>builder()
+                                .success(false)
+                                .message("Invalid role specified: " + role)
+                                .timestamp(LocalDateTime.now())
+                                .build());
+                }
+            } else {
+                users = userService.getUsersByDepartment(department);
+            }
+            
             List<UserProfileResponse> userResponses = users.stream()
-                .filter(User::isActive) // Only active users
-                .map(UserService::mapToUserProfileResponse)
-                .collect(Collectors.toList());
-
-            log.info("Found {} active users in department {}", userResponses.size(), department);
-
+                    .filter(User::isActive) // Only return active users
+                    .map(UserService::mapToUserProfileResponse)
+                    .collect(Collectors.toList());
+            
+            log.info("Found {} users in department '{}'", userResponses.size(), department);
+            
             return ResponseEntity.ok(
                 ApiResponse.<List<UserProfileResponse>>builder()
                     .success(true)
@@ -154,105 +180,153 @@ public class UserController {
                     .timestamp(LocalDateTime.now())
                     .build()
             );
+            
         } catch (Exception e) {
-            log.error("Error getting users by department {}", department, e);
-            return ResponseEntity.badRequest().body(
-                ApiResponse.<List<UserProfileResponse>>builder()
-                    .success(false)
-                    .message("Failed to get users: " + e.getMessage())
-                    .timestamp(LocalDateTime.now())
-                    .build()
-            );
+            log.error("Failed to get users by department: {}", department, e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.<List<UserProfileResponse>>builder()
+                        .success(false)
+                        .message("Failed to retrieve users")
+                        .error(e.getMessage())
+                        .timestamp(LocalDateTime.now())
+                        .build());
         }
     }
 
-    // =================== SEARCH LECTURERS ===================
+    /**
+     * Search lecturers with optional department filter
+     */
     @GetMapping("/lecturers/search")
-    public ResponseEntity<ApiResponse<List<LecturerResponse>>> searchLecturers(@RequestParam(required = false) String department) {
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<List<UserProfileResponse>>> searchLecturers(
+            @RequestParam(name = "department", required = false) String department) {
         try {
             log.info("Searching lecturers with department filter: {}", department);
             
-            List<User> lecturers = userService.getAllLecturers();
-            List<LecturerResponse> lecturerResponses = lecturers.stream()
-                .filter(User::isActive) // Only active lecturers
-                .filter(lecturer -> department == null || 
-                       (lecturer.getProfile() != null && 
-                        lecturer.getProfile().getDepartment() != null &&
-                        lecturer.getProfile().getDepartment().equalsIgnoreCase(department)))
-                .map(this::mapToLecturerResponse)
-                .collect(Collectors.toList());
-
+            List<User> lecturers;
+            
+            if (department != null && !department.trim().isEmpty()) {
+                lecturers = userService.findUsersByDepartmentAndRole(department, User.UserRole.LECTURER);
+            } else {
+                lecturers = userService.getAllLecturers();
+            }
+            
+            List<UserProfileResponse> lecturerResponses = lecturers.stream()
+                    .filter(User::isActive) // Only return active lecturers
+                    .map(UserService::mapToUserProfileResponse)
+                    .collect(Collectors.toList());
+            
             log.info("Found {} lecturers matching search criteria", lecturerResponses.size());
-
+            
             return ResponseEntity.ok(
-                ApiResponse.<List<LecturerResponse>>builder()
+                ApiResponse.<List<UserProfileResponse>>builder()
                     .success(true)
                     .message("Lecturers search completed successfully")
                     .data(lecturerResponses)
                     .timestamp(LocalDateTime.now())
                     .build()
             );
+            
         } catch (Exception e) {
-            log.error("Error searching lecturers", e);
-            return ResponseEntity.badRequest().body(
-                ApiResponse.<List<LecturerResponse>>builder()
-                    .success(false)
-                    .message("Failed to search lecturers: " + e.getMessage())
+            log.error("Failed to search lecturers", e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.<List<UserProfileResponse>>builder()
+                        .success(false)
+                        .message("Failed to search lecturers")
+                        .error(e.getMessage())
+                        .timestamp(LocalDateTime.now())
+                        .build());
+        }
+    }
+
+    /**
+     * Get all departments
+     */
+    @GetMapping("/departments")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<List<String>>> getAllDepartments() {
+        try {
+            log.info("Getting all departments");
+            
+            List<String> departments = userService.getAllDepartments();
+            
+            log.info("Found {} departments", departments.size());
+            
+            return ResponseEntity.ok(
+                ApiResponse.<List<String>>builder()
+                    .success(true)
+                    .message("Departments retrieved successfully")
+                    .data(departments)
                     .timestamp(LocalDateTime.now())
                     .build()
             );
-        }
-    }
-
-    // =================== HELPER METHODS ===================
-    private LecturerResponse mapToLecturerResponse(User lecturer) {
-        if (lecturer == null || lecturer.getProfile() == null) {
-            return null;
-        }
-
-        User.UserProfile profile = lecturer.getProfile();
-
-        // Combine first and last name for the "name" field
-        String fullName = (profile.getFirstName() != null ? profile.getFirstName() : "") + 
-                         " " + 
-                         (profile.getLastName() != null ? profile.getLastName() : "");
-        fullName = fullName.trim();
-
-        return LecturerResponse.builder()
-            .id(lecturer.getId())
-            .name(fullName)
-            .title(profile.getTitle())
-            .email(lecturer.getEmail())
-            .phone(profile.getPhone())
-            .avatar(profile.getAvatar())
-            .department(profile.getDepartment())
-            .specialization(List.of()) // TODO: Add specialization field to User entity
-            .courses(List.of()) // TODO: Load actual courses from CourseService
-            .officeLocation(profile.getOffice() != null ? profile.getOffice() : profile.getOfficeAddress())
-            .officeHours(profile.getOfficeHours() != null ? 
-                        List.of(profile.getOfficeHours().split(",")) : 
-                        List.of())
-            .biography(profile.getBio())
-            .researchInterests(List.of()) // TODO: Add research interests to User entity
-            .publications(0) // TODO: Add publications count to User entity
-            .yearsExperience(profile.getExperience() != null ? 
-                           parseYearsExperience(profile.getExperience()) : 0)
-            .rating(4.5) // TODO: Calculate actual rating from reviews
-            .responseTime("Usually responds within 24 hours") // TODO: Calculate from actual data
-            .availability("Available") // TODO: Check actual availability
-            .lastActive(lecturer.getLastLogin() != null ? 
-                       lecturer.getLastLogin().toString() : "Never")
-            .preferredContactMethod("Email") // TODO: Add to User entity
-            .build();
-    }
-
-    private Integer parseYearsExperience(String experience) {
-        try {
-            // Try to extract number from experience string like "5 years" or "5"
-            String numberStr = experience.replaceAll("[^0-9]", "");
-            return numberStr.isEmpty() ? 0 : Integer.parseInt(numberStr);
+            
         } catch (Exception e) {
-            return 0;
+            log.error("Failed to get departments", e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.<List<String>>builder()
+                        .success(false)
+                        .message("Failed to retrieve departments")
+                        .error(e.getMessage())
+                        .timestamp(LocalDateTime.now())
+                        .build());
+        }
+    }
+
+    /**
+     * Search all users by query string
+     */
+    @GetMapping("/search")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<List<UserProfileResponse>>> searchUsers(
+            @RequestParam(name = "q") String query,
+            @RequestParam(name = "role", required = false) String role) {
+        try {
+            log.info("Searching users with query: '{}', role: {}", query, role);
+            
+            List<User> users;
+            
+            if (role != null && !role.trim().isEmpty()) {
+                try {
+                    User.UserRole userRole = User.UserRole.valueOf(role.toUpperCase());
+                    users = userService.searchUsersByRole(query, userRole);
+                } catch (IllegalArgumentException e) {
+                    return ResponseEntity.status(400)
+                            .body(ApiResponse.<List<UserProfileResponse>>builder()
+                                .success(false)
+                                .message("Invalid role specified: " + role)
+                                .timestamp(LocalDateTime.now())
+                                .build());
+                }
+            } else {
+                users = userService.searchUsers(query);
+            }
+            
+            List<UserProfileResponse> userResponses = users.stream()
+                    .filter(User::isActive) // Only return active users
+                    .map(UserService::mapToUserProfileResponse)
+                    .collect(Collectors.toList());
+            
+            log.info("Found {} users matching search criteria", userResponses.size());
+            
+            return ResponseEntity.ok(
+                ApiResponse.<List<UserProfileResponse>>builder()
+                    .success(true)
+                    .message("Search completed successfully")
+                    .data(userResponses)
+                    .timestamp(LocalDateTime.now())
+                    .build()
+            );
+            
+        } catch (Exception e) {
+            log.error("Failed to search users", e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.<List<UserProfileResponse>>builder()
+                        .success(false)
+                        .message("Search failed")
+                        .error(e.getMessage())
+                        .timestamp(LocalDateTime.now())
+                        .build());
         }
     }
 }
