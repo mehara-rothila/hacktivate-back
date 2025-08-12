@@ -11,7 +11,9 @@ import com.edulink.backend.repository.CourseRepository;
 import com.edulink.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -23,58 +25,61 @@ public class CourseService {
     private final CourseRepository courseRepository;
     private final UserRepository userRepository;
 
-    public CourseResponse createCourse(CourseRequest request, User lecturer) {
-        if (courseRepository.findByCode(request.getCode()).isPresent()) {
-            throw new IllegalStateException("A course with code " + request.getCode() + " already exists.");
-        }
+    @Transactional
+    public CourseResponse createCourse(CourseRequest courseRequest, User lecturer) {
+        Course course = new Course();
+        course.setCode(courseRequest.getCode());
+        course.setName(courseRequest.getName());
+        course.setDescription(courseRequest.getDescription());
+        course.setDepartment(courseRequest.getDepartment());
+        course.setCredits(courseRequest.getCredits());
+        course.setSemester(courseRequest.getSemester());
+        course.setDifficulty(courseRequest.getDifficulty());
+        course.setTags(courseRequest.getTags());
+        course.setPrerequisites(courseRequest.getPrerequisites());
+        
+        // Store the lecturer's ID as a String, not the whole object
+        course.setLecturerId(lecturer.getId());
 
-        Course course = Course.builder()
-                .code(request.getCode())
-                .name(request.getName())
-                .description(request.getDescription())
-                .department(request.getDepartment())
-                .credits(request.getCredits())
-                .semester(request.getSemester())
-                .lecturerId(lecturer.getId())
-                .schedule(new Course.Schedule(
-                        request.getSchedule().getDays(),
-                        request.getSchedule().getTime(),
-                        request.getSchedule().getLocation()))
-                .enrollment(new Course.Enrollment(
-                        request.getCapacity(),
-                        new HashSet<>()))
-                .status(Course.CourseStatus.UPCOMING)
-                .difficulty(request.getDifficulty())
-                .prerequisites(request.getPrerequisites())
-                .tags(request.getTags())
-                .build();
+        // Map nested Schedule object
+        Course.Schedule schedule = new Course.Schedule();
+        schedule.setDays(courseRequest.getSchedule().getDays());
+        schedule.setTime(courseRequest.getSchedule().getTime());
+        schedule.setLocation(courseRequest.getSchedule().getLocation());
+        course.setSchedule(schedule);
+
+        // Map nested Enrollment object and initialize student IDs
+        Course.Enrollment enrollment = new Course.Enrollment();
+        enrollment.setCapacity(courseRequest.getEnrollment().getCapacity());
+        enrollment.setStudentIds(new HashSet<>()); // Initialize with an empty set
+        course.setEnrollment(enrollment);
+
+        course.setStatus(Course.CourseStatus.UPCOMING);
+        course.setCreatedAt(LocalDateTime.now());
+        course.setUpdatedAt(LocalDateTime.now());
 
         Course savedCourse = courseRepository.save(course);
         return mapToCourseResponse(savedCourse);
     }
 
+    @Transactional
     public CourseResponse enrollStudentInCourse(String courseId, User student) {
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new ResourceNotFoundException("Course not found with ID: " + courseId));
-
-        if (course.getEnrollment().getStudentIds().size() >= course.getEnrollment().getCapacity()) {
-            throw new IllegalStateException("Course is already full.");
-        }
+                .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + courseId));
 
         if (course.getEnrollment().getStudentIds().contains(student.getId())) {
             throw new IllegalStateException("Student is already enrolled in this course.");
         }
 
+        if (course.getEnrollment().getStudentIds().size() >= course.getEnrollment().getCapacity()) {
+            throw new IllegalStateException("Course has reached its maximum capacity.");
+        }
+
         course.getEnrollment().getStudentIds().add(student.getId());
+        course.setUpdatedAt(LocalDateTime.now());
+
         Course updatedCourse = courseRepository.save(course);
-
         return mapToCourseResponse(updatedCourse);
-    }
-
-    public CourseResponse getCourseById(String courseId) {
-        Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new ResourceNotFoundException("Course not found with ID: " + courseId));
-        return mapToCourseResponse(course);
     }
 
     public List<CourseResponse> getAllCourses() {
@@ -83,23 +88,46 @@ public class CourseService {
                 .collect(Collectors.toList());
     }
 
-    public List<CourseResponse> getCoursesByLecturer(String lecturerId) {
+    public CourseResponse getCourseById(String courseId) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + courseId));
+        return mapToCourseResponse(course);
+    }
+
+    public List<CourseResponse> getCoursesByLecturerId(String lecturerId) {
         return courseRepository.findAllByLecturerId(lecturerId).stream()
                 .map(this::mapToCourseResponse)
                 .collect(Collectors.toList());
     }
 
-    public List<CourseResponse> getCoursesByStudent(String studentId) {
+    public List<CourseResponse> getCoursesByStudentId(String studentId) {
         return courseRepository.findByEnrollmentStudentIdsContaining(studentId).stream()
                 .map(this::mapToCourseResponse)
                 .collect(Collectors.toList());
     }
 
     private CourseResponse mapToCourseResponse(Course course) {
-        UserProfileResponse lecturerProfile = userRepository.findById(course.getLecturerId())
-                .map(UserService::mapToUserProfileResponse) // This line is now correct
-                .orElse(null);
+        // Fetch the lecturer's full profile using the stored ID
+        User lecturer = userRepository.findById(course.getLecturerId()).orElse(null);
+        UserProfileResponse lecturerResponse = UserService.mapToUserProfileResponse(lecturer);
 
+        // Map nested objects to their response DTOs
+        CourseResponse.ScheduleResponse scheduleResponse = new CourseResponse.ScheduleResponse(
+                course.getSchedule().getDays(),
+                course.getSchedule().getTime(),
+                course.getSchedule().getLocation()
+        );
+
+        // Calculate current enrollment from the size of the studentIds set
+        int currentEnrollment = course.getEnrollment().getStudentIds() != null ? course.getEnrollment().getStudentIds().size() : 0;
+        
+        // Correctly creating the EnrollmentResponse with the right arguments
+        CourseResponse.EnrollmentResponse enrollmentResponse = new CourseResponse.EnrollmentResponse(
+                course.getEnrollment().getCapacity(),
+                currentEnrollment
+        );
+
+        // Build the final response object
         return CourseResponse.builder()
                 .id(course.getId())
                 .code(course.getCode())
@@ -108,17 +136,9 @@ public class CourseService {
                 .department(course.getDepartment())
                 .credits(course.getCredits())
                 .semester(course.getSemester())
-                .lecturer(lecturerProfile)
-                .schedule(CourseResponse.ScheduleResponse.builder()
-                        .days(course.getSchedule().getDays())
-                        .time(course.getSchedule().getTime())
-                        .location(course.getSchedule().getLocation())
-                        .build())
-                .enrollment(CourseResponse.EnrollmentResponse.builder()
-                        .capacity(course.getEnrollment().getCapacity())
-                        .studentIds(course.getEnrollment().getStudentIds())
-                        .currentEnrollment(course.getEnrollment().getStudentIds() != null ? course.getEnrollment().getStudentIds().size() : 0)
-                        .build())
+                .lecturer(lecturerResponse)
+                .schedule(scheduleResponse)
+                .enrollment(enrollmentResponse)
                 .status(course.getStatus())
                 .difficulty(course.getDifficulty())
                 .prerequisites(course.getPrerequisites())

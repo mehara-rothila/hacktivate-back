@@ -2,7 +2,9 @@
 package com.edulink.backend.dto.request;
 
 import com.edulink.backend.model.entity.Course.Difficulty;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.Data;
@@ -31,25 +33,35 @@ public class CourseRequest {
     @NotBlank(message = "Semester is required.")
     private String semester;
 
-    @NotNull(message = "Schedule is required.")
-    private ScheduleRequest schedule;
-
-    @NotNull(message = "Enrollment capacity is required.")
-    @Positive(message = "Capacity must be a positive number.")
-    private Integer capacity;
-
     @NotNull(message = "Difficulty is required.")
     private Difficulty difficulty;
+    
+    @Valid // Add validation for nested object
+    @NotNull(message = "Schedule details are required.")
+    private ScheduleRequest schedule;
+
+    @Valid // Add validation for nested object
+    @NotNull(message = "Enrollment details are required.")
+    private EnrollmentRequest enrollment;
 
     private List<String> prerequisites;
     private Set<String> tags;
 
     @Data
     public static class ScheduleRequest {
-        @NotNull
+        @NotEmpty(message = "At least one schedule day is required.")
         private List<String> days;
-        @NotBlank
+        
+        @NotBlank(message = "Schedule time is required.")
         private String time;
+        
         private String location;
+    }
+
+    @Data
+    public static class EnrollmentRequest {
+        @NotNull(message = "Capacity is required.")
+        @Positive(message = "Capacity must be a positive number.")
+        private Integer capacity;
     }
 }

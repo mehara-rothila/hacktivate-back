@@ -58,7 +58,8 @@ public class CourseController {
     @PreAuthorize("hasRole('LECTURER')")
     public ResponseEntity<ApiResponse> getLecturerCourses() {
         User currentUser = userService.getCurrentUser();
-        List<CourseResponse> courses = courseService.getCoursesByLecturer(currentUser.getId());
+        // Corrected method name to match CourseService
+        List<CourseResponse> courses = courseService.getCoursesByLecturerId(currentUser.getId());
         return ResponseEntity.ok(ApiResponse.builder().success(true).message("Lecturer's courses retrieved successfully.").data(courses).build());
     }
 
@@ -66,7 +67,8 @@ public class CourseController {
     @PreAuthorize("hasRole('STUDENT')")
     public ResponseEntity<ApiResponse> getStudentCourses() {
         User currentUser = userService.getCurrentUser();
-        List<CourseResponse> courses = courseService.getCoursesByStudent(currentUser.getId());
+        // Corrected method name to match CourseService
+        List<CourseResponse> courses = courseService.getCoursesByStudentId(currentUser.getId());
         return ResponseEntity.ok(ApiResponse.builder().success(true).message("Student's enrolled courses retrieved successfully.").data(courses).build());
     }
 }
