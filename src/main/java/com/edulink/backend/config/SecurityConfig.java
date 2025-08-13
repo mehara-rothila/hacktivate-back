@@ -53,9 +53,10 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/register/**").permitAll()
                 .requestMatchers("/api/auth/check-email").permitAll()
                 .requestMatchers("/api/auth/refresh").permitAll()
-                .requestMatchers("/api/files/**").permitAll() // ADDED: Allow public access to files
+                .requestMatchers("/api/files/**").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers("/actuator/info").permitAll()
+                .requestMatchers("/ws/**").permitAll() // ✅ *** FIX APPLIED HERE ***
                 .requestMatchers("/error").permitAll()
                 
                 // Protected endpoints requiring authentication

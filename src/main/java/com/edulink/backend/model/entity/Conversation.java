@@ -10,6 +10,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet; // ARCHIVE: Import HashSet
 import java.util.List;
 import java.util.Set;
 
@@ -33,6 +34,10 @@ public class Conversation {
     private String lastMessageContent;
     private LocalDateTime lastMessageAt;
     private String lastMessageSenderId;
+
+    // ARCHIVE: New field to track who has archived this conversation
+    @Builder.Default
+    private Set<String> archivedByUserIds = new HashSet<>();
     
     @Builder.Default
     private List<Message> messages = new ArrayList<>();
@@ -42,14 +47,14 @@ public class Conversation {
     
     // Enums
     public enum Status {
-        ACTIVE, RESOLVED, ARCHIVED
+        ACTIVE, RESOLVED, ARCHIVED // ARCHIVED here is a system-wide status, not per-user
     }
     
     public enum Priority {
         LOW, MEDIUM, HIGH
     }
     
-    // Inner Message class - matches frontend expectations
+    // Inner Message class
     @Data
     @Builder
     @NoArgsConstructor

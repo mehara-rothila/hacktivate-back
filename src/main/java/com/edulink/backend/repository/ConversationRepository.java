@@ -19,4 +19,10 @@ public interface ConversationRepository extends MongoRepository<Conversation, St
      */
     List<Conversation> findByParticipantIdsContainingOrderByLastMessageAtDesc(String userId);
 
+    // ARCHIVE: New method to find conversations for a user that are NOT archived by them.
+    List<Conversation> findByParticipantIdsContainingAndArchivedByUserIdsNotContainingOrderByLastMessageAtDesc(String participantId, String archivedById);
+
+    // ARCHIVE: New method to find conversations for a user that ARE archived by them.
+    List<Conversation> findByParticipantIdsContainingAndArchivedByUserIdsContainingOrderByLastMessageAtDesc(String participantId, String archivedById);
+
 }

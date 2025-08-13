@@ -73,12 +73,10 @@ public class ConversationController {
         User recipient = userRepository.findById(request.getRecipientId())
                 .orElseThrow(() -> new RuntimeException("Recipient not found"));
 
-        // Create participant set
         Set<String> participantIds = new HashSet<>();
         participantIds.add(currentUser.getId());
         participantIds.add(recipient.getId());
 
-        // Create the first message - FIXED: Using Conversation.Message
         Conversation.Message firstMessage = Conversation.Message.builder()
                 .id(UUID.randomUUID().toString())
                 .senderId(currentUser.getId())
@@ -87,7 +85,6 @@ public class ConversationController {
                 .isRead(false)
                 .build();
 
-        // Create the conversation
         Conversation conversation = Conversation.builder()
                 .participantIds(participantIds)
                 .subject(request.getSubject())
@@ -115,9 +112,16 @@ public class ConversationController {
     // =================== GET ALL CONVERSATIONS ===================
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse> getMyConversations() {
+    public ResponseEntity<ApiResponse> getMyConversations(@RequestParam(required = false, defaultValue = "inbox") String view) {
         User currentUser = userService.getCurrentUser();
-        List<Conversation> conversations = conversationRepository.findByParticipantIdsContainingOrderByLastMessageAtDesc(currentUser.getId());
+        List<Conversation> conversations;
+
+        // ARCHIVE: Updated logic to fetch based on the 'view' parameter (inbox or archived)
+        if ("archived".equalsIgnoreCase(view)) {
+            conversations = conversationRepository.findByParticipantIdsContainingAndArchivedByUserIdsContainingOrderByLastMessageAtDesc(currentUser.getId(), currentUser.getId());
+        } else {
+            conversations = conversationRepository.findByParticipantIdsContainingAndArchivedByUserIdsNotContainingOrderByLastMessageAtDesc(currentUser.getId(), currentUser.getId());
+        }
 
         List<ConversationDTO> conversationDTOs = conversations.stream()
                 .map(convo -> mapToConversationDTO(convo, currentUser.getId()))
@@ -167,7 +171,6 @@ public class ConversationController {
             throw new SecurityException("User is not a participant in this conversation.");
         }
 
-        // FIXED: Return Conversation.Message list directly
         List<Conversation.Message> messages = conversation.getMessages();
         return ResponseEntity.ok(
             ApiResponse.builder()
@@ -193,7 +196,6 @@ public class ConversationController {
             throw new SecurityException("User is not a participant in this conversation.");
         }
 
-        // Create new message - FIXED: Using Conversation.Message
         Conversation.Message newMessage = Conversation.Message.builder()
                 .id(UUID.randomUUID().toString())
                 .senderId(currentUser.getId())
@@ -202,24 +204,25 @@ public class ConversationController {
                 .isRead(false)
                 .build();
 
-        // Add attachments if provided
         if (request.getAttachmentIds() != null && !request.getAttachmentIds().isEmpty()) {
             List<Conversation.Message.Attachment> attachments = request.getAttachmentIds().stream()
                     .map(attachmentId -> Conversation.Message.Attachment.builder()
                             .resourceId(attachmentId)
-                            .originalFilename("attachment") // You might want to get this from resource service
+                            .originalFilename("attachment")
                             .build())
                     .collect(Collectors.toList());
             newMessage.setAttachments(attachments);
         }
 
-        // Add message to conversation and update last message info
         conversation.getMessages().add(newMessage);
         conversation.setLastMessageContent(newMessage.getContent());
         conversation.setLastMessageAt(newMessage.getTimestamp());
         conversation.setLastMessageSenderId(newMessage.getSenderId());
+        
+        // ARCHIVE: When a user sends a message, unarchive the conversation for them
+        conversation.getArchivedByUserIds().remove(currentUser.getId());
 
-        Conversation savedConversation = conversationRepository.save(conversation);
+        conversationRepository.save(conversation);
 
         return ResponseEntity.ok(
             ApiResponse.builder()
@@ -229,14 +232,11 @@ public class ConversationController {
                 .build()
         );
     }
-
-    // =================== MARK MESSAGE AS READ ===================
-    @PutMapping("/{conversationId}/messages/{messageId}/read")
+    
+    // ARCHIVE: New endpoint to archive a conversation for the current user
+    @PutMapping("/{conversationId}/archive")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse> markMessageAsRead(
-            @PathVariable String conversationId,
-            @PathVariable String messageId) {
-        
+    public ResponseEntity<ApiResponse> archiveConversation(@PathVariable String conversationId) {
         User currentUser = userService.getCurrentUser();
         Conversation conversation = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new RuntimeException("Conversation not found"));
@@ -245,21 +245,40 @@ public class ConversationController {
             throw new SecurityException("User is not a participant in this conversation.");
         }
 
-        // Find and mark message as read
-        conversation.getMessages().stream()
-                .filter(message -> message.getId().equals(messageId))
-                .findFirst()
-                .ifPresent(message -> message.setRead(true));
-
+        conversation.getArchivedByUserIds().add(currentUser.getId());
         conversationRepository.save(conversation);
 
         return ResponseEntity.ok(
             ApiResponse.builder()
                 .success(true)
-                .message("Message marked as read.")
+                .message("Conversation archived successfully.")
                 .build()
         );
     }
+
+    // ARCHIVE: New endpoint to unarchive a conversation for the current user
+    @PutMapping("/{conversationId}/unarchive")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse> unarchiveConversation(@PathVariable String conversationId) {
+        User currentUser = userService.getCurrentUser();
+        Conversation conversation = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new RuntimeException("Conversation not found"));
+
+        if (!conversation.getParticipantIds().contains(currentUser.getId())) {
+            throw new SecurityException("User is not a participant in this conversation.");
+        }
+
+        conversation.getArchivedByUserIds().remove(currentUser.getId());
+        conversationRepository.save(conversation);
+
+        return ResponseEntity.ok(
+            ApiResponse.builder()
+                .success(true)
+                .message("Conversation unarchived successfully.")
+                .build()
+        );
+    }
+
 
     // =================== MARK ALL MESSAGES AS READ ===================
     @PutMapping("/{conversationId}/read")
@@ -273,7 +292,6 @@ public class ConversationController {
             throw new SecurityException("User is not a participant in this conversation.");
         }
 
-        // Mark all messages as read for messages not sent by current user
         conversation.getMessages().stream()
                 .filter(message -> !message.getSenderId().equals(currentUser.getId()))
                 .forEach(message -> message.setRead(true));
@@ -352,27 +370,8 @@ public class ConversationController {
         }
     }
 
-    // =================== DELETE CONVERSATION ===================
-    @DeleteMapping("/{conversationId}")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse> deleteConversation(@PathVariable String conversationId) {
-        User currentUser = userService.getCurrentUser();
-        Conversation conversation = conversationRepository.findById(conversationId)
-                .orElseThrow(() -> new RuntimeException("Conversation not found"));
-
-        if (!conversation.getParticipantIds().contains(currentUser.getId())) {
-            throw new SecurityException("User is not a participant in this conversation.");
-        }
-
-        conversationRepository.delete(conversation);
-
-        return ResponseEntity.ok(
-            ApiResponse.builder()
-                .success(true)
-                .message("Conversation deleted successfully.")
-                .build()
-        );
-    }
+    // ARCHIVE: I have removed the DELETE endpoint entirely to prevent permanent deletion.
+    // The archive feature is the safe replacement.
 
     // =================== HELPER METHODS ===================
     private ConversationDTO mapToConversationDTO(Conversation conversation, String currentUserId) {
