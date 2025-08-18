@@ -4,7 +4,9 @@ package com.edulink.backend.model.entity;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -50,7 +52,8 @@ public class User {
     }
 
     // Academic Record class
-    @Data
+    @Getter
+    @Setter
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
@@ -85,8 +88,9 @@ public class User {
         }
     }
 
-    // Nested UserProfile class
-    @Data
+    // Nested UserProfile class - using explicit annotations instead of @Data
+    @Getter
+    @Setter
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
@@ -246,5 +250,37 @@ public class User {
         if (this.profile != null) {
             this.profile.setUpdatedAt(LocalDateTime.now());
         }
+    }
+
+    // Additional profile-related methods
+    /**
+     * Get user profile (explicit getter for profile field)
+     */
+    public UserProfile getProfile() {
+        return profile;
+    }
+
+    /**
+     * Set user profile (explicit setter for profile field)  
+     */
+    public void setProfile(UserProfile profile) {
+        this.profile = profile;
+    }
+
+    /**
+     * Check if user has profile data
+     */
+    public boolean hasProfile() {
+        return this.profile != null;
+    }
+
+    /**
+     * Get profile with null safety
+     */
+    public UserProfile getProfileSafe() {
+        if (this.profile == null) {
+            this.profile = new UserProfile();
+        }
+        return this.profile;
     }
 }
