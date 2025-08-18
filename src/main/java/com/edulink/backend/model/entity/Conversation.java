@@ -10,7 +10,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashSet; // ARCHIVE: Import HashSet
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -35,9 +35,13 @@ public class Conversation {
     private LocalDateTime lastMessageAt;
     private String lastMessageSenderId;
 
-    // ARCHIVE: New field to track who has archived this conversation
+    // ARCHIVE: Field to track who has archived this conversation
     @Builder.Default
     private Set<String> archivedByUserIds = new HashSet<>();
+    
+    // DELETE: New field to track who has deleted this conversation for themselves
+    @Builder.Default
+    private Set<String> deletedByUserIds = new HashSet<>();
     
     @Builder.Default
     private List<Message> messages = new ArrayList<>();

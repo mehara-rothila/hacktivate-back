@@ -116,11 +116,15 @@ public class ConversationController {
         User currentUser = userService.getCurrentUser();
         List<Conversation> conversations;
 
-        // ARCHIVE: Updated logic to fetch based on the 'view' parameter (inbox or archived)
+        // UPDATED: Now excludes deleted conversations and handles archived view
         if ("archived".equalsIgnoreCase(view)) {
-            conversations = conversationRepository.findByParticipantIdsContainingAndArchivedByUserIdsContainingOrderByLastMessageAtDesc(currentUser.getId(), currentUser.getId());
+            // Get archived conversations that are NOT deleted
+            conversations = conversationRepository.findByParticipantIdsContainingAndArchivedByUserIdsContainingAndDeletedByUserIdsNotContainingOrderByLastMessageAtDesc(
+                currentUser.getId(), currentUser.getId(), currentUser.getId());
         } else {
-            conversations = conversationRepository.findByParticipantIdsContainingAndArchivedByUserIdsNotContainingOrderByLastMessageAtDesc(currentUser.getId(), currentUser.getId());
+            // Get inbox conversations that are NOT archived AND NOT deleted
+            conversations = conversationRepository.findByParticipantIdsContainingAndArchivedByUserIdsNotContainingAndDeletedByUserIdsNotContainingOrderByLastMessageAtDesc(
+                currentUser.getId(), currentUser.getId(), currentUser.getId());
         }
 
         List<ConversationDTO> conversationDTOs = conversations.stream()
@@ -148,6 +152,11 @@ public class ConversationController {
             throw new SecurityException("User is not a participant in this conversation.");
         }
 
+        // Check if user has deleted this conversation
+        if (conversation.getDeletedByUserIds().contains(currentUser.getId())) {
+            throw new RuntimeException("Conversation not found (deleted).");
+        }
+
         ConversationDTO conversationDTO = mapToConversationDTO(conversation, currentUser.getId());
         
         return ResponseEntity.ok(
@@ -169,6 +178,11 @@ public class ConversationController {
 
         if (!conversation.getParticipantIds().contains(currentUser.getId())) {
             throw new SecurityException("User is not a participant in this conversation.");
+        }
+
+        // Check if user has deleted this conversation
+        if (conversation.getDeletedByUserIds().contains(currentUser.getId())) {
+            throw new RuntimeException("Conversation not found (deleted).");
         }
 
         List<Conversation.Message> messages = conversation.getMessages();
@@ -196,6 +210,11 @@ public class ConversationController {
             throw new SecurityException("User is not a participant in this conversation.");
         }
 
+        // Check if user has deleted this conversation
+        if (conversation.getDeletedByUserIds().contains(currentUser.getId())) {
+            throw new RuntimeException("Cannot send message to deleted conversation.");
+        }
+
         Conversation.Message newMessage = Conversation.Message.builder()
                 .id(UUID.randomUUID().toString())
                 .senderId(currentUser.getId())
@@ -219,8 +238,9 @@ public class ConversationController {
         conversation.setLastMessageAt(newMessage.getTimestamp());
         conversation.setLastMessageSenderId(newMessage.getSenderId());
         
-        // ARCHIVE: When a user sends a message, unarchive the conversation for them
+        // When a user sends a message, unarchive AND undelete the conversation for them
         conversation.getArchivedByUserIds().remove(currentUser.getId());
+        conversation.getDeletedByUserIds().remove(currentUser.getId());
 
         conversationRepository.save(conversation);
 
@@ -233,7 +253,7 @@ public class ConversationController {
         );
     }
     
-    // ARCHIVE: New endpoint to archive a conversation for the current user
+    // ARCHIVE: Archive a conversation for the current user
     @PutMapping("/{conversationId}/archive")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse> archiveConversation(@PathVariable String conversationId) {
@@ -243,6 +263,11 @@ public class ConversationController {
 
         if (!conversation.getParticipantIds().contains(currentUser.getId())) {
             throw new SecurityException("User is not a participant in this conversation.");
+        }
+
+        // Check if user has deleted this conversation
+        if (conversation.getDeletedByUserIds().contains(currentUser.getId())) {
+            throw new RuntimeException("Cannot archive deleted conversation.");
         }
 
         conversation.getArchivedByUserIds().add(currentUser.getId());
@@ -256,7 +281,7 @@ public class ConversationController {
         );
     }
 
-    // ARCHIVE: New endpoint to unarchive a conversation for the current user
+    // ARCHIVE: Unarchive a conversation for the current user
     @PutMapping("/{conversationId}/unarchive")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse> unarchiveConversation(@PathVariable String conversationId) {
@@ -266,6 +291,11 @@ public class ConversationController {
 
         if (!conversation.getParticipantIds().contains(currentUser.getId())) {
             throw new SecurityException("User is not a participant in this conversation.");
+        }
+
+        // Check if user has deleted this conversation
+        if (conversation.getDeletedByUserIds().contains(currentUser.getId())) {
+            throw new RuntimeException("Cannot unarchive deleted conversation.");
         }
 
         conversation.getArchivedByUserIds().remove(currentUser.getId());
@@ -279,6 +309,57 @@ public class ConversationController {
         );
     }
 
+    // DELETE: New endpoint to delete a conversation for the current user
+    @PutMapping("/{conversationId}/delete")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse> deleteConversation(@PathVariable String conversationId) {
+        User currentUser = userService.getCurrentUser();
+        Conversation conversation = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new RuntimeException("Conversation not found"));
+
+        if (!conversation.getParticipantIds().contains(currentUser.getId())) {
+            throw new SecurityException("User is not a participant in this conversation.");
+        }
+
+        // Add user to deleted list (soft delete for this user only)
+        conversation.getDeletedByUserIds().add(currentUser.getId());
+        
+        // Also remove from archived list if they were there
+        conversation.getArchivedByUserIds().remove(currentUser.getId());
+        
+        conversationRepository.save(conversation);
+
+        return ResponseEntity.ok(
+            ApiResponse.builder()
+                .success(true)
+                .message("Conversation deleted successfully.")
+                .build()
+        );
+    }
+
+    // DELETE: New endpoint to restore a deleted conversation for the current user
+    @PutMapping("/{conversationId}/restore")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse> restoreConversation(@PathVariable String conversationId) {
+        User currentUser = userService.getCurrentUser();
+        Conversation conversation = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new RuntimeException("Conversation not found"));
+
+        if (!conversation.getParticipantIds().contains(currentUser.getId())) {
+            throw new SecurityException("User is not a participant in this conversation.");
+        }
+
+        // Remove user from deleted list
+        conversation.getDeletedByUserIds().remove(currentUser.getId());
+        conversationRepository.save(conversation);
+
+        return ResponseEntity.ok(
+            ApiResponse.builder()
+                .success(true)
+                .message("Conversation restored successfully.")
+                .build()
+        );
+    }
 
     // =================== MARK ALL MESSAGES AS READ ===================
     @PutMapping("/{conversationId}/read")
@@ -290,6 +371,11 @@ public class ConversationController {
 
         if (!conversation.getParticipantIds().contains(currentUser.getId())) {
             throw new SecurityException("User is not a participant in this conversation.");
+        }
+
+        // Check if user has deleted this conversation
+        if (conversation.getDeletedByUserIds().contains(currentUser.getId())) {
+            throw new RuntimeException("Cannot mark deleted conversation as read.");
         }
 
         conversation.getMessages().stream()
@@ -319,6 +405,11 @@ public class ConversationController {
 
         if (!conversation.getParticipantIds().contains(currentUser.getId())) {
             throw new SecurityException("User is not a participant in this conversation.");
+        }
+
+        // Check if user has deleted this conversation
+        if (conversation.getDeletedByUserIds().contains(currentUser.getId())) {
+            throw new RuntimeException("Cannot update status of deleted conversation.");
         }
 
         try {
@@ -353,6 +444,11 @@ public class ConversationController {
             throw new SecurityException("User is not a participant in this conversation.");
         }
 
+        // Check if user has deleted this conversation
+        if (conversation.getDeletedByUserIds().contains(currentUser.getId())) {
+            throw new RuntimeException("Cannot update priority of deleted conversation.");
+        }
+
         try {
             Conversation.Priority newPriority = Conversation.Priority.valueOf(request.getPriority().toUpperCase());
             conversation.setPriority(newPriority);
@@ -369,9 +465,6 @@ public class ConversationController {
             throw new RuntimeException("Invalid priority value: " + request.getPriority());
         }
     }
-
-    // ARCHIVE: I have removed the DELETE endpoint entirely to prevent permanent deletion.
-    // The archive feature is the safe replacement.
 
     // =================== HELPER METHODS ===================
     private ConversationDTO mapToConversationDTO(Conversation conversation, String currentUserId) {
