@@ -66,27 +66,79 @@ public class SecurityConfig {
                 .requestMatchers("/ws/**").permitAll()
                 .requestMatchers("/error").permitAll()
                 
-                // Protected endpoints requiring authentication
+                // =================== AUTH ENDPOINTS ===================
                 .requestMatchers("/api/auth/profile").authenticated()
                 .requestMatchers("/api/auth/change-password").authenticated()
                 .requestMatchers("/api/auth/logout").authenticated()
                 .requestMatchers("/api/auth/status").authenticated()
+                
+                // =================== USER ENDPOINTS ===================
+                .requestMatchers(HttpMethod.GET, "/api/users/lecturers").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/users/lecturers/**").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/users/students").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/users/department/**").authenticated()
+                .requestMatchers("/api/users/**").authenticated()
                 
                 // =================== APPOINTMENT ENDPOINTS ===================
                 .requestMatchers("/api/appointments/**").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/appointments").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/appointments/{appointmentId}").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/appointments/stats").authenticated()
-                .requestMatchers(HttpMethod.GET, "/api/appointments/available-slots").hasRole("STUDENT")
+                .requestMatchers(HttpMethod.GET, "/api/appointments/available-slots").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/appointments").authenticated()
                 .requestMatchers(HttpMethod.PUT, "/api/appointments/{appointmentId}").authenticated()
                 .requestMatchers(HttpMethod.PUT, "/api/appointments/{appointmentId}/status").authenticated()
                 .requestMatchers(HttpMethod.DELETE, "/api/appointments/{appointmentId}").authenticated()
-                // =================== END APPOINTMENT ENDPOINTS ===================
                 
-                // Query endpoints - require authentication
+                // =================== AVAILABILITY ENDPOINTS ===================
+                .requestMatchers("/api/availability/**").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/availability/slots").authenticated()
+                .requestMatchers(HttpMethod.POST, "/api/availability/slots").hasRole("LECTURER")
+                .requestMatchers(HttpMethod.PUT, "/api/availability/slots/**").hasRole("LECTURER")
+                .requestMatchers(HttpMethod.DELETE, "/api/availability/slots/**").hasRole("LECTURER")
+                
+                // =================== QUERY ENDPOINTS ===================
                 .requestMatchers("/api/queries/**").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/queries").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/queries/stats").authenticated()
+                .requestMatchers(HttpMethod.POST, "/api/queries").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/queries/{queryId}").authenticated()
+                .requestMatchers(HttpMethod.PUT, "/api/queries/{queryId}/**").authenticated()
                 
+                // =================== ANNOUNCEMENT ENDPOINTS ===================
+                .requestMatchers("/api/announcements/**").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/announcements").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/announcements/my-created").hasRole("LECTURER")
+                .requestMatchers(HttpMethod.POST, "/api/announcements").hasRole("LECTURER")
+                .requestMatchers(HttpMethod.PUT, "/api/announcements/**").hasRole("LECTURER")
+                .requestMatchers(HttpMethod.DELETE, "/api/announcements/**").hasRole("LECTURER")
+                
+                // =================== COURSE ENDPOINTS ===================
+                .requestMatchers("/api/courses/**").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/courses").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/courses/{courseId}").authenticated()
+                .requestMatchers(HttpMethod.POST, "/api/courses").hasRole("LECTURER")
+                .requestMatchers(HttpMethod.PUT, "/api/courses/**").hasRole("LECTURER")
+                .requestMatchers(HttpMethod.DELETE, "/api/courses/**").hasRole("LECTURER")
+                .requestMatchers(HttpMethod.POST, "/api/courses/{courseId}/enroll").hasRole("STUDENT")
+                .requestMatchers(HttpMethod.GET, "/api/courses/my-courses/**").authenticated()
+                
+                // =================== CONVERSATION ENDPOINTS ===================
+                .requestMatchers("/api/conversations/**").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/conversations").authenticated()
+                .requestMatchers(HttpMethod.POST, "/api/conversations").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/conversations/{conversationId}/**").authenticated()
+                .requestMatchers(HttpMethod.PUT, "/api/conversations/{conversationId}/**").authenticated()
+                .requestMatchers(HttpMethod.POST, "/api/conversations/{conversationId}/**").authenticated()
+                
+                // =================== RESOURCE ENDPOINTS ===================
+                .requestMatchers("/api/resources/**").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/resources/course/**").authenticated()
+                .requestMatchers(HttpMethod.POST, "/api/resources/upload").hasRole("LECTURER")
+                .requestMatchers(HttpMethod.DELETE, "/api/resources/**").hasRole("LECTURER")
+                .requestMatchers(HttpMethod.GET, "/api/resources/{resourceId}/download").authenticated()
+                
+                // =================== ROLE-SPECIFIC ENDPOINTS ===================
                 // Student-specific endpoints
                 .requestMatchers("/api/student/**").hasRole("STUDENT")
                 
