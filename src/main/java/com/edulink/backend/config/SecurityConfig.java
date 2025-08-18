@@ -68,6 +68,9 @@ public class SecurityConfig {
                 
                 // =================== AUTH ENDPOINTS ===================
                 .requestMatchers("/api/auth/profile").authenticated()
+                .requestMatchers("/api/auth/profile/picture").authenticated()
+                .requestMatchers("/api/auth/profile/academic-records").authenticated()
+                .requestMatchers("/api/auth/profile/academic-records/**").authenticated()
                 .requestMatchers("/api/auth/change-password").authenticated()
                 .requestMatchers("/api/auth/logout").authenticated()
                 .requestMatchers("/api/auth/status").authenticated()
@@ -75,6 +78,7 @@ public class SecurityConfig {
                 // =================== USER ENDPOINTS ===================
                 .requestMatchers(HttpMethod.GET, "/api/users/lecturers").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/users/lecturers/**").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/users/lecturers/search").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/users/students").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/users/department/**").authenticated()
                 .requestMatchers("/api/users/**").authenticated()
@@ -93,9 +97,13 @@ public class SecurityConfig {
                 // =================== AVAILABILITY ENDPOINTS ===================
                 .requestMatchers("/api/availability/**").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/availability/slots").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/availability/slots/generated").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/availability/stats").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/availability/slots").hasRole("LECTURER")
+                .requestMatchers(HttpMethod.POST, "/api/availability/slots/bulk-create").hasRole("LECTURER")
                 .requestMatchers(HttpMethod.PUT, "/api/availability/slots/**").hasRole("LECTURER")
                 .requestMatchers(HttpMethod.DELETE, "/api/availability/slots/**").hasRole("LECTURER")
+                .requestMatchers(HttpMethod.DELETE, "/api/availability/slots/bulk-delete").hasRole("LECTURER")
                 
                 // =================== QUERY ENDPOINTS ===================
                 .requestMatchers("/api/queries/**").authenticated()
@@ -103,13 +111,19 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/queries/stats").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/queries").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/queries/{queryId}").authenticated()
-                .requestMatchers(HttpMethod.PUT, "/api/queries/{queryId}/**").authenticated()
+                .requestMatchers(HttpMethod.POST, "/api/queries/{queryId}/messages").authenticated()
+                .requestMatchers(HttpMethod.PUT, "/api/queries/{queryId}/status").authenticated()
+                .requestMatchers(HttpMethod.PUT, "/api/queries/{queryId}/mark-read").authenticated()
+                .requestMatchers(HttpMethod.PUT, "/api/queries/mark-all-read").authenticated()
+                .requestMatchers(HttpMethod.DELETE, "/api/queries/{queryId}").authenticated()
                 
                 // =================== ANNOUNCEMENT ENDPOINTS ===================
                 .requestMatchers("/api/announcements/**").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/announcements").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/announcements/my-created").hasRole("LECTURER")
                 .requestMatchers(HttpMethod.POST, "/api/announcements").hasRole("LECTURER")
+                .requestMatchers(HttpMethod.PUT, "/api/announcements/{id}/read").authenticated()
+                .requestMatchers(HttpMethod.PUT, "/api/announcements/{id}/publish").hasRole("LECTURER")
                 .requestMatchers(HttpMethod.PUT, "/api/announcements/**").hasRole("LECTURER")
                 .requestMatchers(HttpMethod.DELETE, "/api/announcements/**").hasRole("LECTURER")
                 
