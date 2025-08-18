@@ -1,8 +1,7 @@
-# src/main/resources/application.yml - UPDATED WITH APPOINTMENT CONFIGURATIONS
+# src/main/resources/application.yml - PRODUCTION READY VERSION
 
 server:
-  port: 8765
- 
+  port: ${PORT:8765}
 
 spring:
   application:
@@ -10,9 +9,8 @@ spring:
   
   data:
     mongodb:
-      # --- FINAL CORRECTED URI ---
-      # This now points to your Atlas cluster with the correct password.
-      uri: mongodb+srv://ranawakaramr22:rothila2250@hacktivate.rq7koc2.mongodb.net/edulink?retryWrites=true&w=majority
+      # Use environment variable for security - NEVER hardcode credentials
+      uri: ${MONGODB_URI:mongodb://localhost:27017/edulink}
       auto-index-creation: true
   
   servlet:
@@ -27,7 +25,7 @@ spring:
       expiration: ${JWT_EXPIRATION:86400000} # 24 hours
       refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000} # 7 days
 
-  # --- NEW: Task Scheduling Configuration ---
+  # Task Scheduling Configuration
   task:
     scheduling:
       enabled: true
@@ -39,60 +37,60 @@ spring:
         max-size: 50
         queue-capacity: 100
 
-# CORS Configuration
+# CORS Configuration - Now environment variable driven
 cors:
   allowed-origins: ${CORS_ORIGINS:http://localhost:3000,http://localhost:3001}
   allowed-methods: GET,POST,PUT,DELETE,OPTIONS
   allowed-headers: "*"
   allow-credentials: true
 
-# --- NEW: Appointment System Configuration ---
+# Appointment System Configuration
 appointment:
   # Recurring appointment settings
   recurring:
     enabled: true
-    max-instances: 52 # Maximum instances to create for recurring appointments (1 year weekly)
+    max-instances: 52
     cleanup-enabled: true
-    cleanup-cron: "0 0 2 * * ?" # Daily at 2 AM
+    cleanup-cron: "0 0 2 * * ?"
     
   # Automatic status updates
   auto-status-update:
     enabled: true
-    mark-past-as-completed: false # Don't auto-complete, let lecturers mark manually
-    mark-no-show-after-minutes: 30 # Mark as no-show if 30 minutes past scheduled time
+    mark-past-as-completed: false
+    mark-no-show-after-minutes: 30
     cleanup-old-appointments: true
-    keep-completed-days: 365 # Keep completed appointments for 1 year
-    keep-cancelled-days: 90 # Keep cancelled appointments for 3 months
+    keep-completed-days: 365
+    keep-cancelled-days: 90
     
   # Notification settings
   notifications:
     enabled: true
-    email-enabled: ${APPOINTMENT_EMAIL_NOTIFICATIONS:false} # Disabled by default
-    reminder-minutes: [1440, 60, 15] # Send reminders 1 day, 1 hour, and 15 minutes before
+    email-enabled: ${APPOINTMENT_EMAIL_NOTIFICATIONS:false}
+    reminder-minutes: [1440, 60, 15]
     
   # Business rules
   business-rules:
-    min-booking-advance-hours: 2 # Must book at least 2 hours in advance
-    max-booking-advance-days: 30 # Can't book more than 30 days in advance
-    max-duration-minutes: 180 # Maximum 3 hours per appointment
-    min-duration-minutes: 15 # Minimum 15 minutes per appointment
-    cancel-deadline-hours: 2 # Must cancel at least 2 hours before
+    min-booking-advance-hours: 2
+    max-booking-advance-days: 30
+    max-duration-minutes: 180
+    min-duration-minutes: 15
+    cancel-deadline-hours: 2
     
   # Time slot generation settings
   time-slots:
     default-duration-minutes: 30
-    default-start-hour: 9 # 9 AM
-    default-end-hour: 17 # 5 PM
-    interval-minutes: 30 # 30-minute intervals
-    weekend-enabled: false # Don't generate weekend slots by default
+    default-start-hour: 9
+    default-end-hour: 17
+    interval-minutes: 30
+    weekend-enabled: false
     
   # Conflict detection
   conflict-detection:
     enabled: true
-    buffer-minutes: 0 # No buffer time between appointments by default
+    buffer-minutes: 0
     allow-back-to-back: true
 
-# --- NEW: Email Configuration (for appointment notifications) ---
+# Email Configuration
 mail:
   enabled: ${MAIL_ENABLED:false}
   smtp:
@@ -115,10 +113,10 @@ mail:
 # Logging
 logging:
   level:
-    com.edulink: ${LOG_LEVEL:DEBUG}
-    org.springframework.data.mongodb: DEBUG
-    org.springframework.security: DEBUG
-    org.springframework.scheduling: INFO # Add scheduling logs
+    com.edulink: ${LOG_LEVEL:INFO}
+    org.springframework.data.mongodb: ${LOG_LEVEL:INFO}
+    org.springframework.security: ${LOG_LEVEL:INFO}
+    org.springframework.scheduling: INFO
   pattern:
     console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
 
@@ -127,39 +125,39 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,scheduledtasks # Add scheduled tasks endpoint
+        include: health,info,scheduledtasks
   endpoint:
     health:
       show-details: always
     scheduledtasks:
       enabled: true
 
-# --- NEW: Performance and Caching Configuration ---
+# Performance and Caching Configuration
 cache:
   appointment-stats:
-    ttl-minutes: 15 # Cache appointment stats for 15 minutes
+    ttl-minutes: 15
   available-slots:
-    ttl-minutes: 5 # Cache available slots for 5 minutes
+    ttl-minutes: 5
   lecturer-availability:
-    ttl-minutes: 30 # Cache lecturer availability for 30 minutes
+    ttl-minutes: 30
 
-# --- NEW: Rate Limiting (if needed) ---
+# Rate Limiting
 rate-limit:
   appointment-booking:
-    requests-per-minute: 10 # Max 10 appointment bookings per minute per user
+    requests-per-minute: 10
   slot-queries:
-    requests-per-minute: 30 # Max 30 slot queries per minute per user
+    requests-per-minute: 30
 
-# --- NEW: Feature Flags ---
+# Feature Flags
 features:
   recurring-appointments: ${FEATURE_RECURRING_APPOINTMENTS:true}
   appointment-attachments: ${FEATURE_APPOINTMENT_ATTACHMENTS:true}
   video-meetings: ${FEATURE_VIDEO_MEETINGS:true}
   automatic-calendar-sync: ${FEATURE_CALENDAR_SYNC:false}
   appointment-analytics: ${FEATURE_APPOINTMENT_ANALYTICS:true}
-  smart-scheduling: ${FEATURE_SMART_SCHEDULING:false} # AI-powered scheduling suggestions
+  smart-scheduling: ${FEATURE_SMART_SCHEDULING:false}
 
-# --- NEW: Integration Settings ---
+# Integration Settings
 integrations:
   zoom:
     enabled: ${ZOOM_INTEGRATION_ENABLED:false}
@@ -176,11 +174,10 @@ integrations:
     client-id: ${TEAMS_CLIENT_ID:}
     client-secret: ${TEAMS_CLIENT_SECRET:}
 
-# --- NEW: Database Indexing Hints ---
+# Database Indexing Hints
 mongodb:
   indexes:
     appointment:
-      # These will be created automatically by the application
       - fields: { studentId: 1, scheduledAt: -1 }
       - fields: { lecturerId: 1, scheduledAt: -1 }
       - fields: { status: 1, scheduledAt: 1 }
@@ -189,7 +186,7 @@ mongodb:
       - fields: { courseId: 1, scheduledAt: -1 }
       - fields: { isRecurring: 1, scheduledAt: 1 }
 
-# --- NEW: Monitoring and Metrics ---
+# Monitoring and Metrics
 metrics:
   appointment:
     track-booking-success-rate: true

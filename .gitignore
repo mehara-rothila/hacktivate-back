@@ -1,6 +1,5 @@
-HELP.md
 target/
-.mvn/wrapper/maven-wrapper.jar
+!.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
@@ -31,3 +30,22 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Environment Variables ###
+.env
+.env.local
+.env.production
+.env.staging
+
+
+### Logs ###
+logs/
+*.log
+
+### OS ###
+.DS_Store
+Thumbs.db
+
+### Application Specific ###
+uploads/
+temp/

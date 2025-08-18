@@ -10,12 +10,25 @@ public class EduLinkBackendApplication {
     public static void main(String[] args) {
         System.out.println("🚀 Starting EduLink Pro Backend...");
         SpringApplication.run(EduLinkBackendApplication.class, args);
+        
+        // Get port from environment or default
+        String port = System.getenv("PORT");
+        if (port == null) {
+            port = System.getProperty("server.port", "8765");
+        }
+        
+        // Get base URL from environment or construct default
+        String baseUrl = System.getenv("BASE_URL");
+        if (baseUrl == null) {
+            baseUrl = "http://localhost:" + port;
+        }
+        
         System.out.println("✅ EduLink Pro Backend started successfully!");
-        System.out.println("📡 API Base URL: http://localhost:8765/api");
+        System.out.println("📡 API Base URL: " + baseUrl + "/api");
         System.out.println("🔧 Test Endpoints:");
-        System.out.println("   - GET  http://localhost:8765/api/test/hello");
-        System.out.println("   - GET  http://localhost:8765/api/test/db-status");
-        System.out.println("   - GET  http://localhost:8765/api/test/users");
-        System.out.println("   - POST http://localhost:8765/api/test/create-user");
+        System.out.println("   - GET  " + baseUrl + "/api/test/hello");
+        System.out.println("   - GET  " + baseUrl + "/api/test/db-status");
+        System.out.println("   - GET  " + baseUrl + "/api/test/users");
+        System.out.println("   - POST " + baseUrl + "/api/test/create-user");
     }
 }

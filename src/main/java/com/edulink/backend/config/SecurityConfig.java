@@ -3,8 +3,10 @@ package com.edulink.backend.config;
 
 import com.edulink.backend.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -19,6 +21,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -27,6 +30,10 @@ import java.util.Arrays;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final Environment environment;
+
+    @Value("${cors.allowed-origins:http://localhost:3000,http://localhost:3001}")
+    private String allowedOrigins;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -56,7 +63,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/files/**").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers("/actuator/info").permitAll()
-                .requestMatchers("/ws/**").permitAll() // ✅ *** FIX APPLIED HERE ***
+                .requestMatchers("/ws/**").permitAll()
                 .requestMatchers("/error").permitAll()
                 
                 // Protected endpoints requiring authentication
@@ -65,21 +72,15 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/logout").authenticated()
                 .requestMatchers("/api/auth/status").authenticated()
                 
-                // =================== APPOINTMENT ENDPOINTS - ADDED ===================
-                // All appointment endpoints require authentication
+                // =================== APPOINTMENT ENDPOINTS ===================
                 .requestMatchers("/api/appointments/**").authenticated()
-                
-                // Specific appointment endpoint permissions
                 .requestMatchers(HttpMethod.GET, "/api/appointments").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/appointments/{appointmentId}").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/appointments/stats").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/appointments/available-slots").hasRole("STUDENT")
-                
                 .requestMatchers(HttpMethod.POST, "/api/appointments").authenticated()
-                
                 .requestMatchers(HttpMethod.PUT, "/api/appointments/{appointmentId}").authenticated()
                 .requestMatchers(HttpMethod.PUT, "/api/appointments/{appointmentId}/status").authenticated()
-                
                 .requestMatchers(HttpMethod.DELETE, "/api/appointments/{appointmentId}").authenticated()
                 // =================== END APPOINTMENT ENDPOINTS ===================
                 
@@ -118,13 +119,9 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // Allow specific origins (your frontend URLs)
-        configuration.setAllowedOrigins(Arrays.asList(
-            "http://localhost:3000",
-            "http://localhost:3001", 
-            "http://127.0.0.1:3000",
-            "http://127.0.0.1:3001"
-        ));
+        // Get allowed origins from environment variable or use defaults
+        List<String> origins = Arrays.asList(allowedOrigins.split(","));
+        configuration.setAllowedOrigins(origins);
         
         // Allow all headers
         configuration.setAllowedHeaders(Arrays.asList("*"));
