@@ -187,7 +187,7 @@ public class SecurityConfig {
         
         // Get allowed origins from environment variable or use defaults
         List<String> origins = Arrays.asList(allowedOrigins.split(","));
-        configuration.setAllowedOrigins(origins);
+        configuration.setAllowedOriginPatterns(origins); // Use setAllowedOriginPatterns instead of setAllowedOrigins
         
         // Allow all headers
         configuration.setAllowedHeaders(Arrays.asList("*"));
