@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +34,7 @@ public class LostFoundItemService {
     private final LostFoundItemRepository lostFoundItemRepository;
     private final LostFoundCommentRepository commentRepository;
     private final UserRepository userRepository;
+    private final FileStorageService fileStorageService;
 
     // Create new lost/found item
     public LostFoundItemResponse createItem(LostFoundItemRequest request, Authentication authentication) {
@@ -328,5 +330,11 @@ public class LostFoundItemService {
                 .createdAt(comment.getCreatedAt())
                 .updatedAt(comment.getUpdatedAt())
                 .build();
+    }
+
+    // Store image file for lost/found item
+    public String storeImageFile(MultipartFile file) {
+        log.info("Storing image file: {}", file.getOriginalFilename());
+        return fileStorageService.storeFile(file);
     }
 }

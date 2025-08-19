@@ -22,8 +22,8 @@ spring:
   security:
     jwt:
       secret: ${JWT_SECRET:EduLinkProSecretKeyForJWTTokenGeneration2025HackVite}
-      expiration: ${JWT_EXPIRATION:86400000} # 24 hours
-      refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000} # 7 days
+      expiration: ${JWT_EXPIRATION:3600} # 1 hour
+      refresh-expiration: ${JWT_REFRESH_EXPIRATION:36000} # 10 hours
 
   # Task Scheduling Configuration
   task:

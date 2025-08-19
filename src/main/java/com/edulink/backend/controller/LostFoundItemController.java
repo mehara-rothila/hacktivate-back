@@ -388,4 +388,70 @@ public class LostFoundItemController {
                             .build());
         }
     }
+
+    // Upload image for lost/found item
+    @PostMapping("/upload-image")
+    public ResponseEntity<ApiResponse<java.util.Map<String, String>>> uploadImage(
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            Authentication authentication) {
+        try {
+            log.info("Uploading image for lost/found item");
+            
+            // Validate file
+            if (file.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(ApiResponse.<java.util.Map<String, String>>builder()
+                                .success(false)
+                                .message("Please select a file to upload")
+                                .timestamp(LocalDateTime.now())
+                                .build());
+            }
+            
+            // Validate file type
+            String contentType = file.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(ApiResponse.<java.util.Map<String, String>>builder()
+                                .success(false)
+                                .message("Only image files are allowed")
+                                .timestamp(LocalDateTime.now())
+                                .build());
+            }
+            
+            // Validate file size (10MB max)
+            if (file.getSize() > 10 * 1024 * 1024) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(ApiResponse.<java.util.Map<String, String>>builder()
+                                .success(false)
+                                .message("File size must be less than 10MB")
+                                .timestamp(LocalDateTime.now())
+                                .build());
+            }
+            
+            // Store the file
+            String filename = lostFoundItemService.storeImageFile(file);
+            String imageUrl = "/uploads/" + filename; // Adjust path as needed
+            
+            java.util.Map<String, String> response = new java.util.HashMap<>();
+            response.put("filename", filename);
+            response.put("url", imageUrl);
+            
+            return ResponseEntity.ok(ApiResponse.<java.util.Map<String, String>>builder()
+                    .success(true)
+                    .message("Image uploaded successfully")
+                    .data(response)
+                    .timestamp(LocalDateTime.now())
+                    .build());
+                    
+        } catch (Exception e) {
+            log.error("Error uploading image: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.<java.util.Map<String, String>>builder()
+                            .success(false)
+                            .message("Failed to upload image")
+                            .error(e.getMessage())
+                            .timestamp(LocalDateTime.now())
+                            .build());
+        }
+    }
 }
