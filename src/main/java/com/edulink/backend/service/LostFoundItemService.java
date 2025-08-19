@@ -49,6 +49,7 @@ public class LostFoundItemService {
                 .userName(currentUser.getFullName())
                 .userAvatar(currentUser.getProfile() != null ? currentUser.getProfile().getAvatar() : null)
                 .location(request.getLocation() != null ? request.getLocation().trim() : null)
+                .lostFoundDateTime(request.getLostFoundDateTime())
                 .contactInfo(request.getContactInfo() != null ? request.getContactInfo().trim() : null)
                 .build();
         
@@ -128,6 +129,9 @@ public class LostFoundItemService {
         }
         if (request.getLocation() != null) {
             item.setLocation(request.getLocation().trim());
+        }
+        if (request.getLostFoundDateTime() != null) {
+            item.setLostFoundDateTime(request.getLostFoundDateTime());
         }
         if (request.getContactInfo() != null) {
             item.setContactInfo(request.getContactInfo().trim());
@@ -280,6 +284,7 @@ public class LostFoundItemService {
                 .userName(item.getUserName())
                 .userAvatar(item.getUserAvatar())
                 .location(item.getLocation())
+                .lostFoundDateTime(item.getLostFoundDateTime())
                 .contactInfo(item.getContactInfo())
                 .resolvedBy(item.getResolvedBy())
                 .resolvedByName(item.getResolvedByName())

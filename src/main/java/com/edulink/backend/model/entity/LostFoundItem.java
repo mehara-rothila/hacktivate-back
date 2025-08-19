@@ -46,6 +46,8 @@ public class LostFoundItem {
     
     private String location; // Where it was lost/found
     
+    private LocalDateTime lostFoundDateTime; // When the item was actually lost or found
+    
     private String contactInfo; // Optional contact information
     
     private ImageAttachment image;

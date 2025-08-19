@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import jakarta.validation.constraints.Size;
+import java.time.LocalDateTime;
 
 @Data
 @Builder
@@ -22,6 +23,8 @@ public class LostFoundItemUpdateRequest {
     
     @Size(max = 200, message = "Location must not exceed 200 characters")
     private String location;
+    
+    private LocalDateTime lostFoundDateTime; // When the item was actually lost or found
     
     @Size(max = 500, message = "Contact info must not exceed 500 characters")
     private String contactInfo;

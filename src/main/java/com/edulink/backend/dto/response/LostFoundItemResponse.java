@@ -28,6 +28,7 @@ public class LostFoundItemResponse {
     
     // Location and contact
     private String location;
+    private LocalDateTime lostFoundDateTime; // When the item was actually lost or found
     private String contactInfo;
     
     // Image attachment
