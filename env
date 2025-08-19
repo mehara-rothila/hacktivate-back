@@ -1,0 +1,26 @@
+# Local Development Environment Variables
+PORT=8765
+MONGODB_URI=mongodb+srv://ranawakaramr22:rothila2250@hacktivate.rq7koc2.mongodb.net/edulink?retryWrites=true&w=majority
+JWT_SECRET=EduLinkProSecretKeyForJWTTokenGenerationSuperSecure2025HackVite
+JWT_EXPIRATION=86400000
+JWT_REFRESH_EXPIRATION=604800000
+CORS_ORIGINS=http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001
+LOG_LEVEL=DEBUG
+BASE_URL=http://localhost:8765
+
+# Optional Email Configuration
+MAIL_ENABLED=false
+APPOINTMENT_EMAIL_NOTIFICATIONS=false
+
+# Optional Feature Flags
+FEATURE_RECURRING_APPOINTMENTS=true
+FEATURE_APPOINTMENT_ATTACHMENTS=true
+FEATURE_VIDEO_MEETINGS=false
+FEATURE_CALENDAR_SYNC=false
+FEATURE_APPOINTMENT_ANALYTICS=true
+FEATURE_SMART_SCHEDULING=false
+
+# Optional Integration Settings
+ZOOM_INTEGRATION_ENABLED=false
+GOOGLE_CALENDAR_ENABLED=false
+TEAMS_INTEGRATION_ENABLED=false

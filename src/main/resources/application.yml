@@ -9,8 +9,8 @@ spring:
   
   data:
     mongodb:
-      # Use environment variable for security - NEVER hardcode credentials
-      uri: ${MONGODB_URI:mongodb://localhost:27017/edulink}
+      # MongoDB Atlas URI
+      uri: mongodb+srv://ranawakaramr22:rothila2250@hacktivate.rq7koc2.mongodb.net/edulink?retryWrites=true&w=majority
       auto-index-creation: true
   
   servlet:
