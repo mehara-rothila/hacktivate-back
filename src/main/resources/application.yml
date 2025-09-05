@@ -1,16 +1,17 @@
-# src/main/resources/application.yml - PRODUCTION READY VERSION
+# Production Configuration
+# All sensitive values must be provided via environment variables
 
 server:
   port: ${PORT:8765}
 
 spring:
   application:
-    name: edulink-pro
+    name: edulink
   
   data:
     mongodb:
-      # MongoDB Atlas URI
-      uri: mongodb+srv://ranawakaramr22:rothila2250@hacktivate.rq7koc2.mongodb.net/edulink?retryWrites=true&w=majority
+      # REQUIRED: Set MONGODB_URI environment variable
+      uri: ${MONGODB_URI}
       auto-index-creation: true
   
   servlet:
@@ -21,9 +22,10 @@ spring:
   
   security:
     jwt:
-      secret: ${JWT_SECRET:EduLinkProSecretKeyForJWTTokenGeneration2025HackVite}
-      expiration: ${JWT_EXPIRATION:3600} # 1 hour
-      refresh-expiration: ${JWT_REFRESH_EXPIRATION:36000} # 10 hours
+      # REQUIRED: Set JWT_SECRET environment variable
+      secret: ${JWT_SECRET}
+      expiration: ${JWT_EXPIRATION:3600}
+      refresh-expiration: ${JWT_REFRESH_EXPIRATION:36000}
 
   # Task Scheduling Configuration
   task:
