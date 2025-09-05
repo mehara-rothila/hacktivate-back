@@ -34,8 +34,14 @@ build/
 ### Environment Variables ###
 .env
 .env.local
+.env.development
 .env.production
 .env.staging
+.env.test
+
+### Application Configuration ###
+application-local.yml
+application-local.properties
 
 
 ### Logs ###
