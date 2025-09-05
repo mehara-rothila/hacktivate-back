@@ -1,0 +1,87 @@
+# Development Environment Configuration
+# This file contains non-sensitive development defaults
+# Override with environment variables for sensitive data
+
+server:
+  port: 8765
+
+spring:
+  application:
+    name: edulink-dev
+  
+  data:
+    mongodb:
+      # Use environment variable: MONGODB_URI
+      uri: ${MONGODB_URI:mongodb://localhost:27017/edulink_dev}
+      auto-index-creation: true
+  
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 100MB
+      max-request-size: 100MB
+  
+  security:
+    jwt:
+      # Use environment variables: JWT_SECRET, JWT_EXPIRATION, JWT_REFRESH_EXPIRATION
+      secret: ${JWT_SECRET:dev-secret-change-in-production}
+      expiration: ${JWT_EXPIRATION:3600}
+      refresh-expiration: ${JWT_REFRESH_EXPIRATION:36000}
+
+# CORS Configuration for development
+cors:
+  allowed-origins: ${CORS_ORIGINS:http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001}
+  allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+  allowed-headers: "*"
+  allow-credentials: true
+
+# Development-specific settings
+appointment:
+  recurring:
+    enabled: true
+    max-instances: 52
+    cleanup-enabled: false # Disabled in dev for easier testing
+    
+  auto-status-update:
+    enabled: false # Disabled in dev for easier testing
+    
+  notifications:
+    enabled: false # Disabled in dev
+    email-enabled: false
+    
+  business-rules:
+    min-booking-advance-hours: 0 # Relaxed for testing
+    max-booking-advance-days: 365
+    cancel-deadline-hours: 0 # Relaxed for testing
+
+# Email disabled in development
+mail:
+  enabled: false
+
+# Debug logging in development
+logging:
+  level:
+    com.edulink: DEBUG
+    org.springframework.data.mongodb: DEBUG
+    org.springframework.security: DEBUG
+    root: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# Development feature flags
+features:
+  recurring-appointments: true
+  appointment-attachments: true
+  video-meetings: false
+  automatic-calendar-sync: false
+  appointment-analytics: true
+  smart-scheduling: false
+
+# All integrations disabled in development
+integrations:
+  zoom:
+    enabled: false
+  google-calendar:
+    enabled: false
+  microsoft-teams:
+    enabled: false
